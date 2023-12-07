@@ -75,6 +75,7 @@ typedef enum
 	SYS_BOOT_CMD,
 	SET_RELAY_CMD,
 	ALIVE_CMD,
+	ADC_OFFSET_CAL_CMD,
 	END_CMD
 }_CAN_CMD;
 
@@ -95,8 +96,6 @@ typedef enum
 #define RELAY_2_GPIO_Port GPIOB
 #define RELAY_1_Pin GPIO_PIN_15
 #define RELAY_1_GPIO_Port GPIOB
-
-
 
 /* USER CODE BEGIN Private defines */
 

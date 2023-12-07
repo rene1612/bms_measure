@@ -28,6 +28,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "ads131m0x.h"
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -67,6 +68,15 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int _write(int file, char *ptr, int len)
+ {
+	 int DataIdx;
+	 for (DataIdx = 0; DataIdx < len; DataIdx++)
+	 {
+		 ITM_SendChar(*ptr++);
+	 }
+	 return len;
+ }
 
 /* USER CODE END 0 */
 
@@ -77,6 +87,7 @@ void SystemClock_Config(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
 	main_task_scheduler = 0;
 	adc_enable_mask = (0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5);
 	//adc_enable_mask = (0x01<<ADC_CH5);
@@ -104,7 +115,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN_Init();
-  MX_RTC_Init();
+  //MX_RTC_Init();
   MX_SPI1_Init();
   MX_CRC_Init();
   MX_TIM4_Init();
@@ -152,8 +163,8 @@ int main(void)
 
 	  if (main_task_scheduler & PROCESS_100_MS_TASK)
 	  {
-			  main_task_scheduler &= ~PROCESS_100_MS_TASK;
-			  HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+		  main_task_scheduler &= ~PROCESS_100_MS_TASK;
+		  HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 	  }
 
 
@@ -174,11 +185,11 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
@@ -201,7 +212,7 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
+  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -212,6 +223,16 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 
+//*****************************************************************************
+//
+//! wird alle 10ms aufgerufen, getriggert durch den Timer4-overrun
+//!
+//! \fn uint8_t process_10Ms_Timer(void)
+//!
+//!
+//! \return None.
+//
+//*****************************************************************************
 uint8_t process_10Ms_Timer(void)
 {
 	if (alive_timer)
@@ -231,7 +252,16 @@ uint8_t process_10Ms_Timer(void)
 	return 0;
 }
 
-// Callback: timer has rolled over
+//*****************************************************************************
+//
+//! Callback: timer has rolled over
+//!
+//! \fn void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+//!
+//!
+//! \return None.
+//
+//*****************************************************************************
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   // Check which version of the timer triggered this callback and toggle LED

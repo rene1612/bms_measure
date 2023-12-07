@@ -53,6 +53,16 @@ typedef enum
 }_signalState;
 
 
+/**
+  * @brief Lock structures definition
+  */
+typedef enum
+{
+  DATA_UNLOCKED = 0x00U,
+  DATA_LOCKED   = 0x01U
+} ADC_LockTypeDef;
+
+
 //****************************************************************************
 //
 // Select the device variant to use...
@@ -1750,8 +1760,8 @@ typedef struct
 {
 	int32_t 	average;
 	uint8_t 	average_counter;
-	uint32_t	ofset_cal;
-	uint32_t	gain_cal;
+//	uint32_t	ofset_cal;
+//	uint32_t	gain_cal;
     uint32_t 	r;
     float   	v;
     _MEASURE_TYPE measure_type;
@@ -1773,7 +1783,11 @@ typedef struct
     uint8_t* 		txBuf;
     uint8_t 		bufLen;
     _m08ChData 		chData[CHANNEL_COUNT];
+    uint8_t			ch;
+    ADC_LockTypeDef Lock;
 }_adcConfM;         // Type E: ADS131M08
+
+
 
 typedef enum
 {
@@ -1806,6 +1820,7 @@ uint16_t    		calculateCRC(const uint8_t dataBytes[], uint8_t numberBytes, uint1
 void 				ADS131M08_parse_adc_data();
 HAL_StatusTypeDef	ADS131M08_receive_data();
 uint8_t				process_ADS131M08(void);
+uint8_t				ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset);
 
 // Getter functions
 uint16_t    		getRegisterValue(uint8_t address);

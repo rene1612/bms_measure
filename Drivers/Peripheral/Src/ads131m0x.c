@@ -47,7 +47,7 @@
 //
 //****************************************************************************
 _adcConfM* adcConfM = NULL;
-_ADS131M08_ch ch;
+//_ADS131M08_ch ch;
 #define SPI_DEFAULT_TIMEOUT 100U
 
 // Array of SPI word lengths
@@ -110,7 +110,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if(GPIO_Pin == MCU_DRDY_Pin) // If The INT Source Is EXTI Line9 (A9 Pin)
     {
-    	ADS131M08_receive_data();
+    	//ADS131M08_receive_data();
     	ads131m08_task_scheduler |= ADS131M08_PARSE_NEW_DATA;
     	main_task_scheduler |= PROCESS_ADS131M08;
     }
@@ -140,15 +140,70 @@ uint8_t	process_ADS131M08(void)
 
 	if (ads131m08_task_scheduler & ADS131M08_PARSE_NEW_DATA)
 	{
-		ads131m08_task_scheduler &= ~ADS131M08_PARSE_NEW_DATA;
-		ADS131M08_parse_adc_data();
+
+	    if (adcConfM->Lock == DATA_UNLOCKED)
+	    {
+			ADS131M08_receive_data();
+	    	adcConfM->Lock = DATA_LOCKED;
+			ADS131M08_parse_adc_data();
+	    	adcConfM->Lock = DATA_UNLOCKED;
+			ads131m08_task_scheduler &= ~ADS131M08_PARSE_NEW_DATA;
+	    }
 	}
 
 	return ads131m08_task_scheduler;
 }
 
 
+uint8_t	ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset)
+{
+	uint8_t addr;
+	uint16_t regs;
+	uint32_t data;
 
+	if (ch >= NUMB_ADC_CH)
+		return 0;
+
+//	if (offset & 0x80000000)
+//		data = (0xFFFFFF - (offset & 0x007FFFFF)) | 0x800000;
+//	else
+//		data = offset & 0x007FFFFF;
+
+	data = offset & 0x00FFFFFF;
+
+	addr = CH0_OCAL_MSB_ADDRESS + ch*5;
+
+	regs = (uint16_t)((data & 0xFFFF00) >> 8);
+	writeSingleRegister(addr, regs);
+
+	addr = CH0_OCAL_LSB_ADDRESS + ch*5;
+	regs = (uint16_t)((data & 0x0000FF) << 8);
+	writeSingleRegister(addr, regs);
+
+	return 1;
+}
+
+uint8_t	ADS131M08_gain_callibration(_ADS131M08_ch ch, uint32_t gain)
+{
+	uint8_t addr, regs;
+
+	if (ch >= NUMB_ADC_CH)
+		return 0;
+
+	addr = CH0_GCAL_MSB_ADDRESS + ch*5;
+	regs = (uint16_t)((gain & 0x00FFFF00) >> 8);
+	writeSingleRegister(addr, regs);
+
+	addr = CH0_GCAL_LSB_ADDRESS + ch*5;
+	regs = (uint16_t)((gain & 0x000000FF) << 8);
+	writeSingleRegister(addr, regs);
+
+	return 1;
+}
+
+
+
+/* (OPTIONAL) Check STATUS register for faults */
 
 
 HAL_StatusTypeDef ADS131M08_init(SPI_HandleTypeDef* hspi)
@@ -171,6 +226,8 @@ HAL_StatusTypeDef ADS131M08_init(SPI_HandleTypeDef* hspi)
 	memset(adcConfM->rxBuf, 0, adcConfM->bufLen);
 	adcConfM->txBuf           = (uint8_t*)malloc(adcConfM->bufLen);
 	memset(adcConfM->txBuf, 0, adcConfM->bufLen);
+	//adcConfM->ch = 0;
+	//adcConfM->Lock = DATA_UNLOCKED;
 
 	for(i=0; i<CHANNEL_COUNT; i++ )
 	{
@@ -231,7 +288,6 @@ HAL_StatusTypeDef ADS131M08_startup()
 
 {
 	int i=0;
-	uint16_t regs=0;
 
     // Reset Sequence
     HAL_GPIO_WritePin(adcConfM->cs.port, adcConfM->cs.pin, GPIO_PIN_SET);
@@ -259,21 +315,9 @@ HAL_StatusTypeDef ADS131M08_startup()
     writeSingleRegister(MODE_ADDRESS, MODE_DEFAULT);
 
     /* (OPTIONAL) Read back all registers */
+    //ADS131M08_offset_callibration(ADC_CH4, 0);
 
-	/* (OPTIONAL) Check STATUS register for faults */
-    regs = ((uint16_t) (((0xFFFFFF - 130600) & 0xFFFF00) >> 8));
-    writeSingleRegister(CH3_OCAL_MSB_ADDRESS, regs);
-
-    regs = ((uint16_t) (((0xFFFFFF - 130600) & 0x0000FF) << 8));
-    writeSingleRegister(CH3_OCAL_LSB_ADDRESS, regs);
-
-
-	/* (OPTIONAL) Check STATUS register for faults */
-    regs = ((uint16_t) (((0xFFFFFF - 77140) & 0xFFFF00) >> 8));
-    writeSingleRegister(CH4_OCAL_MSB_ADDRESS, regs);
-
-    regs = ((uint16_t) (((0xFFFFFF - 77140) & 0x0000FF) << 8));
-    writeSingleRegister(CH4_OCAL_LSB_ADDRESS, regs);
+    //ADS131M08_offset_callibration(ADC_CH5, 0);
 
     /* (OPTIONAL) Read back all registers */
     // Wakeup device
@@ -1083,52 +1127,51 @@ void ADS131M08_parse_adc_data()
 
     adcConfM->response = combineBytes(adcConfM->rxBuf[0], adcConfM->rxBuf[1]);
 
-    for(ch = ADC_CH1, index = 1; ch < NUMB_ADC_CH; ch++, index++)
-    {
-    	if ( adcConfM->chData[ch].average_counter < CHANNEL_OVERSAMPLING )
-    	{
-    		adcConfM->chData[ch].r = ADS131M08_convert_adc_data(&adcConfM->rxBuf[index * M08_WORD_LENGTH]);
+	for(adcConfM->ch = ADC_CH1, index = 1; adcConfM->ch < NUMB_ADC_CH; adcConfM->ch++, index++)
+	{
+		if ( adcConfM->chData[adcConfM->ch].average_counter < CHANNEL_OVERSAMPLING )
+		{
+			adcConfM->chData[adcConfM->ch].r = ADS131M08_convert_adc_data(&adcConfM->rxBuf[index * M08_WORD_LENGTH]);
 
-    		if ( adcConfM->chData[ch].r & 0x800000)
-    		{
-    			adcConfM->chData[ch].average -= ((0xFFFFFF - adcConfM->chData[ch].r) +1);
-    		}
-    		else
-    		{
-    			adcConfM->chData[ch].average += adcConfM->chData[ch].r;
-    		}
+			if ( adcConfM->chData[adcConfM->ch].r & 0x800000)
+			{
+				adcConfM->chData[adcConfM->ch].average -= ((0xFFFFFF - adcConfM->chData[adcConfM->ch].r) +1);
+			}
+			else
+			{
+				adcConfM->chData[adcConfM->ch].average += adcConfM->chData[adcConfM->ch].r;
+			}
 
-    		adcConfM->chData[ch].average_counter ++;
-    	}
-    	else
-    	{
-    		adcConfM->chData[ch].average /= CHANNEL_OVERSAMPLING;
-    		adcConfM->chData[ch].average_counter = 0;
+			adcConfM->chData[adcConfM->ch].average_counter ++;
+		}
+		else
+		{
+			adcConfM->chData[adcConfM->ch].average /= CHANNEL_OVERSAMPLING;
+			adcConfM->chData[adcConfM->ch].average_counter = 0;
 
-    		switch (adcConfM->chData[ch].measure_type )
-    		{
+			switch (adcConfM->chData[adcConfM->ch].measure_type )
+			{
 				case CURRENT_MA_FLOAT:
-	        		 adcConfM->chData[ch].v = ADS131M08_convert_to_mAmp(adcConfM->chData[ch].average);
-	        		 break;
+					 adcConfM->chData[adcConfM->ch].v = ADS131M08_convert_to_mAmp(adcConfM->chData[adcConfM->ch].average);
+					 break;
 
 				case VOLTAGE_MV_FLOAT:
-	        		 adcConfM->chData[ch].v = ADS131M08_convert_to_mVolt(adcConfM->chData[ch].average);
+					 adcConfM->chData[adcConfM->ch].v = ADS131M08_convert_to_mVolt(adcConfM->chData[adcConfM->ch].average);
 					break;
 
 				default:
 					break;
-    		}
-        	//Do the things that need to be done
-
-    		if (ch >= NUMB_ADC_CH-1)
-    		{
-    	    	ads131m08_task_scheduler |= ADS131M08_SEND_AGGR_DATA;
-    	    	main_task_scheduler |= PROCESS_ADS131M08;
-
-    			return;
-    		}
-    	}
-    }
+			}
+			//Do the things that need to be done
+			if (adcConfM->ch >= NUMB_ADC_CH-1)
+			{
+				adcConfM->ch = 0;
+				ads131m08_task_scheduler |= ADS131M08_SEND_AGGR_DATA;
+				main_task_scheduler |= PROCESS_ADS131M08;
+				return;
+			}
+		}
+	}
 }
 
 

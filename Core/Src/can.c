@@ -163,30 +163,40 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 
 uint8_t	process_CAN(void)
 {
-	_ADS131M08_ch ch;
+	//_ADS131M08_ch ch;
+
+	int32_t offset;
+	uint8_t ch;
 
 	if (can_task_scheduler & PROCESS_CAN_SEND_NEW_ADC_DATA)
 	{
+		if (adcConfM->Lock == DATA_UNLOCKED )
+			adcConfM->Lock = DATA_LOCKED;
 
-	    for(ch = ADC_CH1; ch < NUMB_ADC_CH; ch++)
-	    {
-	    	if(adc_enable_mask & (0x01<<ch))
-	    	{
-				CanTxData[0] = (adcConfM->chData[ch].measure_type<<4) | ch;
-				*((float*)(CanTxData+1)) = adcConfM->chData[ch].v;
-
-
-				while (HAL_CAN_IsTxMessagePending(&hcan, TxMailbox)) {}
+		if(adc_enable_mask & (0x01<<adcConfM->ch))
+		{
+			if (!HAL_CAN_IsTxMessagePending(&hcan, TxMailbox))
+			{
+				CanTxData[0] = (adcConfM->chData[adcConfM->ch].measure_type<<4) | adcConfM->ch;
+				*((float*)(CanTxData+1)) = adcConfM->chData[adcConfM->ch].v;
 
 				if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, CanTxData, &TxMailbox) != HAL_OK)
 				{
-				   Error_Handler ();
+					Error_Handler ();
 				}
-	    	}
-	    }
+			}
+			else
+				return can_task_scheduler;
+		}
 
-		can_task_scheduler &= ~PROCESS_CAN_SEND_NEW_ADC_DATA;
-		return can_task_scheduler;
+		if(adcConfM->ch++ >= NUMB_ADC_CH )
+		{
+			adcConfM->Lock = DATA_UNLOCKED;
+			can_task_scheduler &= ~PROCESS_CAN_SEND_NEW_ADC_DATA;
+		}
+
+		//can_task_scheduler &= ~PROCESS_CAN_SEND_NEW_ADC_DATA;
+		//return can_task_scheduler;
 	}
 
 
@@ -225,6 +235,29 @@ uint8_t	process_CAN(void)
 
 		case ALIVE_CMD:
 			alive_timer = ALIVE_TIMEOUT_10MS;
+			break;
+
+		case ADC_OFFSET_CAL_CMD:
+			//printf("ADC_OFFSET_CAL_CMD\n");
+
+			ch = CanRxData[1];
+			offset = *((int32_t *)(CanRxData+2));
+			ADS131M08_offset_callibration(ch, offset);
+			break;
+		case SYS_RESET_CMD:
+			//printf("SYS_RESET\n");
+			break;
+
+		case SYS_BOOT_CMD:
+			//printf("SYS_BOOT\n");
+			break;
+
+		case READ_REG_CMD:
+			//printf("READ_REG_CMD\n");
+			break;
+
+		case WRITE_REG_CMD:
+			//printf("WRITE_REG_CMD\n");
 			break;
 
 		default:
