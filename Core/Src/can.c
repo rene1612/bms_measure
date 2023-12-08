@@ -27,11 +27,12 @@
 
 
 //ADS131M08_Can_Msg	ads_can_msg={};
-CAN_TxHeaderTypeDef	TxHeader;
+CAN_TxHeaderTypeDef	TxHeader, ReplayHeader;
 uint8_t				CanTxData[8];
 uint32_t            TxMailbox;
 uint8_t				can_task_scheduler;
 CAN_RxHeaderTypeDef RxHeader;
+uint8_t				can_replay_msg;
 
 uint8_t             CanRxData[8];
 
@@ -75,6 +76,11 @@ void MX_CAN_Init(void)
   TxHeader.IDE = CAN_ID_STD;
   TxHeader.StdId = BMS_MEASURE_CAN_ID;
   TxHeader.RTR = CAN_RTR_DATA;
+
+  ReplayHeader.DLC = 2;
+  ReplayHeader.IDE = CAN_ID_STD;
+  ReplayHeader.StdId = BMS_MEASURE_CAN_ID;
+  ReplayHeader.RTR = CAN_RTR_DATA;
 
   canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
   canfilterconfig.FilterBank = 13;  // which filter bank to use from the assigned ones
@@ -166,14 +172,16 @@ uint8_t	process_CAN(void)
 	//_ADS131M08_ch ch;
 
 	int32_t offset;
-	uint8_t ch;
+	uint32_t gain;
+	uint8_t ch, sys_reg;
+	uint16_t reg;
 
 	if (can_task_scheduler & PROCESS_CAN_SEND_NEW_ADC_DATA)
 	{
 		if (adcConfM->Lock == DATA_UNLOCKED )
 			adcConfM->Lock = DATA_LOCKED;
 
-		if(adc_enable_mask & (0x01<<adcConfM->ch))
+		if(main_regs.adc_enable_mask & (0x01<<adcConfM->ch))
 		{
 			if (!HAL_CAN_IsTxMessagePending(&hcan, TxMailbox))
 			{
@@ -234,16 +242,49 @@ uint8_t	process_CAN(void)
 			break;
 
 		case ALIVE_CMD:
-			alive_timer = ALIVE_TIMEOUT_10MS;
+			alive_timer = main_regs.alive_timeout;
 			break;
 
 		case ADC_OFFSET_CAL_CMD:
 			//printf("ADC_OFFSET_CAL_CMD\n");
-
 			ch = CanRxData[1];
 			offset = *((int32_t *)(CanRxData+2));
 			ADS131M08_offset_callibration(ch, offset);
 			break;
+
+		case ADC_GAIN_CAL_CMD:
+			//printf("ADC_OFFSET_CAL_CMD\n");
+			ch = CanRxData[1];
+			gain = *((uint32_t *)(CanRxData+2));
+			ADS131M08_gain_callibration(ch, gain);
+			break;
+
+		case ADC_READ_REG_CMD:
+			//printf("READ_REG_CMD\n");
+			reg = readSingleRegister(CanRxData[1]);
+			CanTxData[0] = REPLAY_DATA_CMD;
+			CanTxData[1] = CanRxData[1];
+			*((uint16_t *)(CanTxData+2)) = reg;
+			ReplayHeader.DLC = 4;
+			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
+			break;
+
+		case ADC_WRITE_REG_CMD:
+			//printf("ADC_READ_REG_CMD\n");
+			if (writeSingleRegister(CanRxData[1], *((uint16_t *)(CanRxData+2))))
+			{
+				CanTxData[1] = ACK;
+			}
+			else
+			{
+				CanTxData[1] = NACK;
+			}
+			CanTxData[0] = REPLAY_AKC_NACK_CMD;
+			ReplayHeader.DLC = 2;
+			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
+			break;
+
+
 		case SYS_RESET_CMD:
 			//printf("SYS_RESET\n");
 			break;
@@ -252,12 +293,42 @@ uint8_t	process_CAN(void)
 			//printf("SYS_BOOT\n");
 			break;
 
-		case READ_REG_CMD:
-			//printf("READ_REG_CMD\n");
+		case SYS_READ_REG_CMD:
+			//printf("ADC_READ_REG_CMD\n");
+			sys_reg = CanRxData[1];
+
+			if (sys_reg < sizeof(main_regs))
+			{
+				CanTxData[0] = REPLAY_DATA_CMD;
+				CanTxData[1] = sys_reg;
+				CanTxData[2] = *(((uint8_t *)&main_regs)+sys_reg);
+				ReplayHeader.DLC = 3;
+			}
+			else
+			{
+				CanTxData[0] = REPLAY_AKC_NACK_CMD;
+				CanTxData[1] = NACK;
+				ReplayHeader.DLC = 2;
+			}
+			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
 			break;
 
-		case WRITE_REG_CMD:
+		case SYS_WRITE_REG_CMD:
 			//printf("WRITE_REG_CMD\n");
+			sys_reg = CanRxData[1];
+
+			if (sys_reg < sizeof(main_regs))
+			{
+				*(((uint8_t *)&main_regs)+sys_reg) = CanRxData[2];
+				CanTxData[1] = ACK;
+			}
+			else
+			{
+				CanTxData[1] = NACK;
+			}
+			ReplayHeader.DLC = 2;
+			CanTxData[0] = REPLAY_AKC_NACK_CMD;
+			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
 			break;
 
 		default:
@@ -266,6 +337,19 @@ uint8_t	process_CAN(void)
 		can_task_scheduler &= ~PROCESS_CAN_ON_MSG;
 	}
 
+
+	if (can_task_scheduler & PROCESS_CAN_SEND_REPLAY)
+	{
+		if (!HAL_CAN_IsTxMessagePending(&hcan, TxMailbox))
+		{
+			if (HAL_CAN_AddTxMessage(&hcan, &ReplayHeader, CanTxData, &TxMailbox) != HAL_OK)
+			{
+				Error_Handler ();
+			}
+
+			can_task_scheduler &= ~PROCESS_CAN_SEND_REPLAY;
+		}
+	}
 
 	return can_task_scheduler;
 }

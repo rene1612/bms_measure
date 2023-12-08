@@ -1810,7 +1810,7 @@ void        		adcStartup(void);
 uint16_t    		sendCommand(uint16_t op_code);
 bool        		readData(adc_channel_data *DataStruct);
 uint16_t    		readSingleRegister(uint8_t address);
-void        		writeSingleRegister(uint8_t address, uint16_t data);
+uint8_t        		writeSingleRegister(uint8_t address, uint16_t data);
 bool        		lockRegisters(void);
 bool        		unlockRegisters(void);
 void        		resetDevice(void);
@@ -1821,6 +1821,7 @@ void 				ADS131M08_parse_adc_data();
 HAL_StatusTypeDef	ADS131M08_receive_data();
 uint8_t				process_ADS131M08(void);
 uint8_t				ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset);
+uint8_t				ADS131M08_gain_callibration(_ADS131M08_ch ch, uint32_t gain);
 
 // Getter functions
 uint16_t    		getRegisterValue(uint8_t address);

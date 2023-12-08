@@ -105,7 +105,17 @@ uint16_t getRegisterValue(uint8_t address)
 }
 
 
-// EXTI  External Interrupt ISR Handler CallBackFun
+//*****************************************************************************
+//
+//! EXTI  External Interrupt ISR Handler CallBackFun
+//!
+//! \fn void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+//!
+//! NOTE: is called on falling edge of drdx-Pin, when new adc-data are availabe
+//!
+//! \return none
+//
+//*****************************************************************************
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     if(GPIO_Pin == MCU_DRDY_Pin) // If The INT Source Is EXTI Line9 (A9 Pin)
@@ -117,6 +127,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 }
 
 
+//*****************************************************************************
+//
+//!
+//!
+//! \fn void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef * hspi)
+//!
+//! NOTE: Callback function for rx-compleation
+//!
+//! \return none
+//
+//*****************************************************************************
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef * hspi)
 {
     // RX Done .. Do Something ...
@@ -128,6 +149,19 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef * hspi)
 
 
 
+//*****************************************************************************
+//
+//! Worker-"Thread" for adc
+//!
+//! \fn uint8_t	process_ADS131M08(void)
+//!
+//! NOTE:
+//!
+//! \return ads131m08_task_scheduler
+//!			0 if all work are done
+//!			>0 if some work is left over
+//
+//*****************************************************************************
 uint8_t	process_ADS131M08(void)
 {
 
@@ -155,6 +189,18 @@ uint8_t	process_ADS131M08(void)
 }
 
 
+//*****************************************************************************
+//
+//! Offset Callibration for adc
+//!
+//! \fn uint8_t	ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset)
+//!
+//! NOTE:
+//!
+//! \return ads131m08_task_scheduler
+//!			0 on Error
+//!			1 on Success
+//*****************************************************************************
 uint8_t	ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset)
 {
 	uint8_t addr;
@@ -183,6 +229,18 @@ uint8_t	ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset)
 	return 1;
 }
 
+//*****************************************************************************
+//
+//! Gain Callibration for adc
+//!
+//! \fn uint8_t	ADS131M08_gain_callibration(_ADS131M08_ch ch, uint32_t gain)
+//!
+//! NOTE:
+//!
+//! \return ads131m08_task_scheduler
+//!			0 on Error
+//!			1 on Success
+//*****************************************************************************
 uint8_t	ADS131M08_gain_callibration(_ADS131M08_ch ch, uint32_t gain)
 {
 	uint8_t addr, regs;
@@ -202,10 +260,18 @@ uint8_t	ADS131M08_gain_callibration(_ADS131M08_ch ch, uint32_t gain)
 }
 
 
-
-/* (OPTIONAL) Check STATUS register for faults */
-
-
+//*****************************************************************************
+//
+//! ADC-init function
+//!
+//! \fn HAL_StatusTypeDef ADS131M08_init(SPI_HandleTypeDef* hspi)
+//!
+//! NOTE:
+//!
+//! \return HAL_StatusTypeDef
+//!			HAL_EROR on Error
+//!			HAL_OK on Success
+//*****************************************************************************
 HAL_StatusTypeDef ADS131M08_init(SPI_HandleTypeDef* hspi)
 {
     HAL_StatusTypeDef result = HAL_OK;
@@ -258,9 +324,6 @@ HAL_StatusTypeDef ADS131M08_init(SPI_HandleTypeDef* hspi)
     {
     	adcConfM->stat = ADS131M08_INIT_FAIL;
     }
-
-
-	//while(ADS131M08_read_drdy_signal()==GPIO_PIN_SET){}
 
     //enable DRDY-falling edge int to start continous DMA-read
     /* EXTI interrupt init*/
@@ -423,7 +486,7 @@ uint16_t readSingleRegister(uint8_t address)
 //! \return None.
 //
 //*****************************************************************************
-void writeSingleRegister(uint8_t address, uint16_t data)
+uint8_t writeSingleRegister(uint8_t address, uint16_t data)
 {
 	uint16_t updated_reg = 0;
 
@@ -469,7 +532,10 @@ void writeSingleRegister(uint8_t address, uint16_t data)
     {
         // Update internal array
         adcConfM->sr.mp[address] = data;
+        return 1;
     }
+    else
+    	return 0;
 
     // NOTE: Enabling the CRC words in the SPI command will NOT prevent an invalid W
 }

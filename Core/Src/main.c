@@ -58,6 +58,35 @@ uint8_t adc_enable_mask;
 uint8_t alive_timer;
 uint16_t timer_10ms;
 
+
+
+/**
+ * @var		main_regs
+ * @brief	Registersatz im Ram (Arbeitsregister)
+ * @see		MAIN_REGS
+ * @see		main_ee_regs
+ *
+ */
+_MAIN_REGS main_regs = {
+	//!<RW CTRL Ein-/Ausschalten usw.  (1 BYTE )
+	0,
+
+	SYS_OK,
+	STATE_OFF,
+
+	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5)),
+
+	ALIVE_TIMEOUT_10MS,
+
+	APP_CAN_BITRATE,
+
+	//ab rel. 0x10 steht die Gerätesignatur und die Softwareversion
+	__DEV_SIGNATURE__,
+	__SW_RELEASE__,
+	__SW_RELEASE_DATE__,
+};
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,7 +118,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
 	main_task_scheduler = 0;
-	adc_enable_mask = (0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5);
+	//adc_enable_mask =
 	//adc_enable_mask = (0x01<<ADC_CH5);
 	alive_timer = 0;
 	timer_10ms = 0;
@@ -115,7 +144,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN_Init();
-  //MX_RTC_Init();
+  MX_RTC_Init();
   MX_SPI1_Init();
   MX_CRC_Init();
   MX_TIM4_Init();
@@ -240,7 +269,7 @@ uint8_t process_10Ms_Timer(void)
 		if (--alive_timer == 0)
 		{
 			//kritisch
-			alive_timer = ALIVE_TIMEOUT_10MS;
+			alive_timer = main_regs.alive_timeout;
 		}
 	}
 

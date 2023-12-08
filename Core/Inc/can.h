@@ -46,6 +46,7 @@ extern uint8_t				can_task_scheduler;
 
 #define PROCESS_CAN_SEND_NEW_ADC_DATA 	0x01
 #define PROCESS_CAN_ON_MSG				0x02
+#define PROCESS_CAN_SEND_REPLAY			0x04
 
 /* USER CODE END Private defines */
 
