@@ -56,6 +56,14 @@ void Error_Handler(void);
 extern uint8_t main_task_scheduler;
 extern uint8_t alive_timer;
 
+
+//#define CHANNEL_COUNT ((uint8_t)NUMB_ADC_CH + 0)   // ADS131M04 -> 4 Channels
+#define CHANNEL_COUNT (6)   // ADS131M04 -> 4 Channels
+
+#if ((CHANNEL_COUNT < 1) || (CHANNEL_COUNT > 8))
+    #error Invalid channel count configured in 'main.h'.
+#endif
+
 typedef enum
 {
 	CURRENT_MA_FLOAT,
@@ -69,6 +77,13 @@ typedef enum
 	ACK = 0x11,
 	NACK= 0x13
 }_REPLAY_TYPE;
+
+typedef struct
+{
+	float	min_thereshold;
+	float	max_thereshold;
+	uint8_t threshold_mask;
+}_ALLERT_THRESHOLDS;
 
 
 typedef enum
@@ -134,6 +149,8 @@ typedef enum
   * @brief
   */
   uint32_t			can_bitrate;
+
+  _ALLERT_THRESHOLDS ch[CHANNEL_COUNT];
 
  /**
   * @var	unsigned char dev_signature
@@ -219,6 +236,7 @@ typedef enum
 #define PROCESS_CAN				0x02
 #define PROCESS_10_MS_TASK		0x04
 #define PROCESS_100_MS_TASK		0x08
+#define PROCESS_STATUS			0x10
 
 #define ALIVE_TIMEOUT_10MS		15
 #define APP_CAN_BITRATE			500000UL
@@ -229,6 +247,15 @@ typedef enum
 #define SW_RELEASE_MONTH			12
 #define SW_RELEASE_YEAR				2023
 #define __SW_RELEASE_DATE__			((SW_RELEASE_DAY<<24 ) | (SW_RELEASE_MONTH<<18) | SW_RELEASE_YEAR)
+
+
+ /**
+  * Bit-Defines für das Controllregister
+  */
+  #define REG_CTRL_ACTIVATE			0
+  #define REG_CTRL_DEACTIVATE		1
+  #define REG_CTRL_CRIT_ALLERT		2
+  #define REG_CTRL_RESET			7	//!<Reset des Controllers auslösen
 
  /**
   * Zustände

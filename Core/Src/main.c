@@ -25,16 +25,20 @@
 #include "tim.h"
 #include "gpio.h"
 
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "ads131m0x.h"
 #include <stdio.h>
+#include <math.h>
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 uint8_t process_10Ms_Timer(void);
+void AllertHandler(void);
+uint8_t check_AllertThrescholds(void);
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -69,7 +73,7 @@ uint16_t timer_10ms;
  */
 _MAIN_REGS main_regs = {
 	//!<RW CTRL Ein-/Ausschalten usw.  (1 BYTE )
-	0,
+	((1<<REG_CTRL_ACTIVATE) | (1<<REG_CTRL_CRIT_ALLERT)),
 
 	SYS_OK,
 	STATE_OFF,
@@ -79,6 +83,25 @@ _MAIN_REGS main_regs = {
 	ALIVE_TIMEOUT_10MS,
 
 	APP_CAN_BITRATE,
+
+	{
+		{ -30000.0, 30000.0, 0x03},
+#if (CHANNEL_COUNT > 1)
+		{ -30000.0, 30000.0, 0x03},
+#endif
+#if (CHANNEL_COUNT > 2)
+		{ -30000.0, 30000.0, 0x03},
+#endif
+#if (CHANNEL_COUNT > 3)
+		{ -30000.0, 30000.0, 0x03},
+#endif
+#if (CHANNEL_COUNT > 4)
+		{ 20.0, 25.0, 0x02},
+#endif
+#if (CHANNEL_COUNT > 5)
+		{ 0.0, 0.0, 0x00}
+#endif
+	},
 
 	//ab rel. 0x10 steht die Gerätesignatur und die Softwareversion
 	__DEV_SIGNATURE__,
@@ -175,7 +198,10 @@ int main(void)
 	  if (main_task_scheduler & PROCESS_ADS131M08)
 	  {
 		  if (!process_ADS131M08())
+		  {
+			  check_AllertThrescholds();
 			  main_task_scheduler &= ~PROCESS_ADS131M08;
+		  }
 	  }
 
 	  if (main_task_scheduler & PROCESS_CAN)
@@ -262,6 +288,54 @@ void SystemClock_Config(void)
 //! \return None.
 //
 //*****************************************************************************
+uint8_t check_AllertThrescholds(void)
+{
+	uint8_t ch;
+	float abs_value;
+
+	for (ch=0; ch<NUMB_ADC_CH; ch++)
+	{
+		if (main_regs.adc_enable_mask & (1<<ch) )
+		{
+			//abs_value = abs();
+			abs_value = adcConfM->chData[ch].v;
+
+			//upper threschold?
+			if (main_regs.ch[ch].threshold_mask & 0x02)
+			{
+
+				if (abs_value >= main_regs.ch[ch].max_thereshold )
+				{
+					AllertHandler();
+				}
+			}
+			//lower threschold?
+			if (main_regs.ch[ch].threshold_mask & 0x01)
+			{
+
+				if (abs_value <= main_regs.ch[ch].min_thereshold )
+				{
+					AllertHandler();
+				}
+			}
+		}
+	}
+
+
+	return 0;
+}
+
+
+//*****************************************************************************
+//
+//! wird alle 10ms aufgerufen, getriggert durch den Timer4-overrun
+//!
+//! \fn uint8_t process_10Ms_Timer(void)
+//!
+//!
+//! \return None.
+//
+//*****************************************************************************
 uint8_t process_10Ms_Timer(void)
 {
 	if (alive_timer)
@@ -280,6 +354,30 @@ uint8_t process_10Ms_Timer(void)
 
 	return 0;
 }
+
+
+//*****************************************************************************
+//
+//! wird im Fehlerfall aufgerufen und aktivert die vollständige Abschaltung
+//!
+//! \fn void AllertHandler(void)
+//!
+//!
+//! \return None.
+//
+//*****************************************************************************
+void AllertHandler(void)
+{
+	//send Something?
+
+	if (main_regs.ctrl & (1<<REG_CTRL_ACTIVATE))
+	{
+		HAL_GPIO_WritePin(RELAY_2_GPIO_Port, RELAY_2_Pin, GPIO_PIN_SET);
+
+		while(1){}
+	}
+}
+
 
 //*****************************************************************************
 //

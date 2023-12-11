@@ -73,12 +73,6 @@ typedef enum
 #define ADS131M08_PARSE_NEW_DATA		0x01
 #define ADS131M08_SEND_AGGR_DATA		0x02
 
-//#define CHANNEL_COUNT ((uint8_t)NUMB_ADC_CH + 0)   // ADS131M04 -> 4 Channels
-#define CHANNEL_COUNT (6)   // ADS131M04 -> 4 Channels
-
-#if ((CHANNEL_COUNT < 1) || (CHANNEL_COUNT > 8))
-    #error Invalid channel count configured in 'ads131m0x.h'.
-#endif
 
 
 

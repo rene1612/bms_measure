@@ -378,9 +378,9 @@ HAL_StatusTypeDef ADS131M08_startup()
     writeSingleRegister(MODE_ADDRESS, MODE_DEFAULT);
 
     /* (OPTIONAL) Read back all registers */
-    //ADS131M08_offset_callibration(ADC_CH4, 0);
+    ADS131M08_offset_callibration(ADC_CH4, -128500);
 
-    //ADS131M08_offset_callibration(ADC_CH5, 0);
+    ADS131M08_offset_callibration(ADC_CH5, -77000);
 
     /* (OPTIONAL) Read back all registers */
     // Wakeup device
