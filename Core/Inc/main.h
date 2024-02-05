@@ -159,7 +159,7 @@ typedef enum
   * @see	DEV_SIGNATURE_REG
   * @see	config.h
   */
-  unsigned char		dev_signature;
+  uint8_t		dev_signature;
 
  /**
   * @var	unsigned int sw_release
@@ -168,7 +168,7 @@ typedef enum
   * @see	SW_REL_REG
   * @see	config.h
   */
-  unsigned int		sw_release;
+  uint16_t		sw_release;
 
  /**
   * @var	unsigned int sw_release_date
@@ -182,7 +182,7 @@ typedef enum
   * @see	SW_REL_DATE_REG
   * @see	config.h
   */
-  unsigned long		sw_release_date;
+  uint32_t		sw_release_date;
  }_MAIN_REGS;
 
 
@@ -221,10 +221,16 @@ typedef enum
 #define LED_GREEN_GPIO_Port GPIOB
 #define LED_RED_Pin GPIO_PIN_13
 #define LED_RED_GPIO_Port GPIOB
-#define RELAY_2_Pin GPIO_PIN_14
-#define RELAY_2_GPIO_Port GPIOB
-#define RELAY_1_Pin GPIO_PIN_15
+#define RELAY_1_Pin GPIO_PIN_14
 #define RELAY_1_GPIO_Port GPIOB
+#define RELAY_2_Pin GPIO_PIN_15
+#define RELAY_2_GPIO_Port GPIOB
+#define RELAY_3_Pin GPIO_PIN_9
+#define RELAY_3_GPIO_Port GPIOA
+#define RELAY_4_Pin GPIO_PIN_10
+#define RELAY_4_GPIO_Port GPIOA
+#define RELAY_5_Pin GPIO_PIN_11
+#define RELAY_5_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

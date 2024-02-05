@@ -61,7 +61,7 @@ uint8_t adc_enable_mask;
 uint8_t alive_timer;
 uint16_t timer_10ms;
 
-
+__attribute__((__section__(".board_info"))) const unsigned char BOARD_NAME[10] = "APP";
 
 /**
  * @var		main_regs
