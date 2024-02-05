@@ -181,7 +181,7 @@ uint8_t	process_CAN(void)
 		if (adcConfM->Lock == DATA_UNLOCKED )
 			adcConfM->Lock = DATA_LOCKED;
 
-		if(main_regs.adc_enable_mask & (0x01<<adcConfM->ch))
+		if(main_regs.cfg_regs.adc_enable_mask & (0x01<<adcConfM->ch))
 		{
 			if (!HAL_CAN_IsTxMessagePending(&hcan, TxMailbox))
 			{

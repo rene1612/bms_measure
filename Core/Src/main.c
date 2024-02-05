@@ -30,7 +30,7 @@
 #include "ads131m0x.h"
 #include <stdio.h>
 #include <math.h>
-
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,29 +61,19 @@ uint8_t adc_enable_mask;
 uint8_t alive_timer;
 uint16_t timer_10ms;
 
-__attribute__((__section__(".board_info"))) const unsigned char BOARD_NAME[10] = "APP";
+__attribute__((__section__(".board_info"))) const unsigned char BOARD_NAME[16] = "BMS-MEASURE-APP";
 
-/**
- * @var		main_regs
- * @brief	Registersatz im Ram (Arbeitsregister)
- * @see		MAIN_REGS
- * @see		main_ee_regs
- *
- */
-_MAIN_REGS main_regs = {
-	//!<RW CTRL Ein-/Ausschalten usw.  (1 BYTE )
-	((1<<REG_CTRL_ACTIVATE) | (1<<REG_CTRL_CRIT_ALLERT)),
+__attribute__((__section__(".board_info"))) const _SW_INFO_REGS sw_info_regs = {
+		__SW_RELEASE__,
+		__SW_RELEASE_DATE__,
+};
 
-	SYS_OK,
-	STATE_OFF,
+//alles was persistend (im Flash) gespeichert werden soll, z.b. Kalibration, ...
+__attribute__((__section__(".app_config"))) const _BMS_MEASURE_CONFIG_REGS app_cfg_regs = {
 
 	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5)),
-
-	ALIVE_TIMEOUT_10MS,
-
-	APP_CAN_BITRATE,
-
-	{
+	{},
+	{ //allert Thresholds
 		{ -30000.0, 30000.0, 0x03},
 #if (CHANNEL_COUNT > 1)
 		{ -30000.0, 30000.0, 0x03},
@@ -100,12 +90,31 @@ _MAIN_REGS main_regs = {
 #if (CHANNEL_COUNT > 5)
 		{ 0.0, 0.0, 0x00}
 #endif
-	},
+	}
+};
 
-	//ab rel. 0x10 steht die Gerätesignatur und die Softwareversion
-	__DEV_SIGNATURE__,
-	__SW_RELEASE__,
-	__SW_RELEASE_DATE__,
+//const _DEV_CONFIG_REGS* pDevConfig = (const _DEV_CONFIG_REGS*)DEV_CONFIG_FL_ADDRESS;
+
+//const _DEV_CONFIG_REGS* pDevConfig = (const _DEV_CONFIG_REGS*)&dev_config_regs;
+
+/**
+ * @var		main_regs
+ * @brief	Registersatz im Ram (Arbeitsregister)
+ * @see		MAIN_REGS
+ * @see		main_ee_regs
+ *
+ */
+_MAIN_REGS main_regs = {
+	//!<RW CTRL Ein-/Ausschalten usw.  (1 BYTE )
+	((1<<REG_CTRL_ACTIVATE) | (1<<REG_CTRL_CRIT_ALLERT)),
+
+	SYS_OK,
+	STATE_OFF,
+
+	ALIVE_TIMEOUT_10MS,
+
+	{}
+
 };
 
 
@@ -140,10 +149,10 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
 	main_task_scheduler = 0;
-	//adc_enable_mask =
-	//adc_enable_mask = (0x01<<ADC_CH5);
 	alive_timer = 0;
 	timer_10ms = 0;
+
+	memcpy(&main_regs.cfg_regs, &app_cfg_regs, sizeof(_BMS_MEASURE_CONFIG_REGS));
 
   /* USER CODE END 1 */
 
@@ -294,32 +303,31 @@ uint8_t check_AllertThrescholds(void)
 
 	for (ch=0; ch<NUMB_ADC_CH; ch++)
 	{
-		if (main_regs.adc_enable_mask & (1<<ch) )
+		if (main_regs.cfg_regs.adc_enable_mask & (1<<ch) )
 		{
 			//abs_value = abs();
 			abs_value = adcConfM->chData[ch].v;
 
 			//upper threschold?
-			if (main_regs.ch[ch].threshold_mask & 0x02)
+			if (main_regs.cfg_regs.allert_thesholds[ch].enable_mask & 0x02)
 			{
 
-				if (abs_value >= main_regs.ch[ch].max_thereshold )
+				if (abs_value >= main_regs.cfg_regs.allert_thesholds[ch].max_thereshold )
 				{
 					AllertHandler();
 				}
 			}
 			//lower threschold?
-			if (main_regs.ch[ch].threshold_mask & 0x01)
+			if (main_regs.cfg_regs.allert_thesholds[ch].enable_mask & 0x01)
 			{
 
-				if (abs_value <= main_regs.ch[ch].min_thereshold )
+				if (abs_value <= main_regs.cfg_regs.allert_thesholds[ch].min_thereshold )
 				{
 					AllertHandler();
 				}
 			}
 		}
 	}
-
 
 	return 0;
 }
@@ -390,11 +398,11 @@ void AllertHandler(void)
 //*****************************************************************************
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  // Check which version of the timer triggered this callback and toggle LED
-  if (htim == &htim4 )
-  {
-    main_task_scheduler |= PROCESS_10_MS_TASK;
-  }
+	// Check which version of the timer triggered this callback and toggle LED
+	if (htim == &htim4 )
+	{
+		main_task_scheduler |= PROCESS_10_MS_TASK;
+	}
 }
 
 

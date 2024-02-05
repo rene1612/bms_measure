@@ -46,6 +46,7 @@ MEMORY
 {
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 20K
   FLASH    (rx)    : ORIGIN = 0x8008000,   LENGTH = 92K
+  FLASH1    (rx)    : ORIGIN = 0x801F000,   LENGTH = 2K
 }
 
 /* Sections */
@@ -59,11 +60,20 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
+/* USER CODE BEGIN PTD */
   /* BOARD NAME GOES INTO FLASH */
   .board_info : 
   {
   	KEEP(*(.board_info))
   } >FLASH
+  
+  /* Configuration for APP GOES INTO FLASH1 */
+  .app_config : 
+  {
+     . = ALIGN(4);
+  	KEEP(*(.app_config))
+  } >FLASH1
+/* USER CODE END PTD */
 
   /* The program code and other data into "FLASH" Rom type memory */
   .text :
