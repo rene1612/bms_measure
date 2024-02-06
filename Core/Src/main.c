@@ -93,7 +93,7 @@ __attribute__((__section__(".app_config"))) const _BMS_MEASURE_CONFIG_REGS app_c
 	}
 };
 
-//const _DEV_CONFIG_REGS* pDevConfig = (const _DEV_CONFIG_REGS*)DEV_CONFIG_FL_ADDRESS;
+const _DEV_CONFIG_REGS* pDevConfig = (const _DEV_CONFIG_REGS*)DEV_CONFIG_FL_ADDRESS;
 
 //const _DEV_CONFIG_REGS* pDevConfig = (const _DEV_CONFIG_REGS*)&dev_config_regs;
 
