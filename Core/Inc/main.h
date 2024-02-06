@@ -31,6 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <dev_config.h>
 
 /* USER CODE END Includes */
 
@@ -82,8 +83,15 @@ typedef struct
 {
 	float	min_thereshold;
 	float	max_thereshold;
-	uint8_t threshold_mask;
+	uint8_t enable_mask;
 }_ALLERT_THRESHOLDS;
+
+
+typedef struct
+{
+	uint32_t	offset;
+	uint32_t	gain;
+}_ADC_CH_CALLIBEATION;
 
 
 typedef enum
@@ -124,43 +132,40 @@ typedef enum
  */
  typedef struct
  {
+  uint8_t 				adc_enable_mask;
+  _ADC_CH_CALLIBEATION	adc_callibration[CHANNEL_COUNT];
+  _ALLERT_THRESHOLDS	allert_thesholds[CHANNEL_COUNT];
+ }_BMS_MEASURE_CONFIG_REGS;
+
+
+/**
+ * @struct	REG
+ * @brief	Registersatz des Controllers.
+ *
+ * @note	Der Registersatz wird im RAM und im EEProm gehalten
+ */
+ typedef struct
+ {
+  uint8_t						ctrl;
+
+  _SYS_STATE					sys_state;
+
+  uint8_t						monitor_led_state;
+
+  uint8_t						alive_timeout;
+
+  _BMS_MEASURE_CONFIG_REGS		cfg_regs;
+ }_MAIN_REGS;
+
+
  /**
-  * @var	unsigned char ctrl
-  * @brief	Steuer-Register für den Controller
+  * @struct	REG
+  * @brief	Registersatz des Controllers.
   *
-  *	- Bit 0 -> Bit zum Ein-/Ausschalten
-  *	- Bit 7 -> Reset des Controllers auslösen
-  *
-  * @see	CTRL_REG
+  * @note	Der Registersatz wird im RAM und im EEProm gehalten
   */
-  uint8_t			ctrl;
-
-  _SYS_STATE		sys_state;
-
-  uint8_t			monitor_led_state;
-
-  uint8_t 			adc_enable_mask;
-
-  uint8_t			alive_timeout;
-
-
- /**
-  * @var	uint32_t		can_bitrate
-  * @brief
-  */
-  uint32_t			can_bitrate;
-
-  _ALLERT_THRESHOLDS ch[CHANNEL_COUNT];
-
- /**
-  * @var	unsigned char dev_signature
-  * @brief	Register mit der Gerätekennung
-  * @see	__DEV_SIGNATURE__
-  * @see	DEV_SIGNATURE_REG
-  * @see	config.h
-  */
-  unsigned char		dev_signature;
-
+  typedef struct
+  {
  /**
   * @var	unsigned int sw_release
   * @brief	Register mit der Softwareversion
@@ -168,7 +173,7 @@ typedef enum
   * @see	SW_REL_REG
   * @see	config.h
   */
-  unsigned int		sw_release;
+  uint16_t		sw_release;
 
  /**
   * @var	unsigned int sw_release_date
@@ -182,8 +187,8 @@ typedef enum
   * @see	SW_REL_DATE_REG
   * @see	config.h
   */
-  unsigned long		sw_release_date;
- }_MAIN_REGS;
+  uint32_t		sw_release_date;
+ }_SW_INFO_REGS;
 
 
  /**
@@ -221,15 +226,18 @@ typedef enum
 #define LED_GREEN_GPIO_Port GPIOB
 #define LED_RED_Pin GPIO_PIN_13
 #define LED_RED_GPIO_Port GPIOB
-#define RELAY_2_Pin GPIO_PIN_14
-#define RELAY_2_GPIO_Port GPIOB
-#define RELAY_1_Pin GPIO_PIN_15
+#define RELAY_1_Pin GPIO_PIN_14
 #define RELAY_1_GPIO_Port GPIOB
+#define RELAY_2_Pin GPIO_PIN_15
+#define RELAY_2_GPIO_Port GPIOB
+#define RELAY_3_Pin GPIO_PIN_9
+#define RELAY_3_GPIO_Port GPIOA
+#define RELAY_4_Pin GPIO_PIN_10
+#define RELAY_4_GPIO_Port GPIOA
+#define RELAY_5_Pin GPIO_PIN_11
+#define RELAY_5_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
-
-#define RELAY_3_Pin GPIO_PIN_13
-#define RELAY_3_GPIO_Port GPIOB
 
 #define PROCESS_NO_TASK			0x00
 #define PROCESS_ADS131M08		0x01
