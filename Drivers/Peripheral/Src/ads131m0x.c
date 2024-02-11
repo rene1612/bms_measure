@@ -56,6 +56,8 @@ const static uint8_t        wlength_byte_values[] = {2, 3, 4, 4};
 extern DMA_HandleTypeDef hdma_spi1_rx;
 uint8_t ads131m08_task_scheduler;
 
+//extern _MAIN_REGS main_regs;
+
 
 //****************************************************************************
 //
@@ -100,7 +102,7 @@ GPIO_PinState		ADS131M08_read_cs_signal();
 //*****************************************************************************
 uint16_t getRegisterValue(uint8_t address)
 {
-    assert(address < NUM_REGISTERS);
+    assert(address < ADS131M08_NUM_REGISTERS);
     return adcConfM->sr.mp[address];
 }
 
@@ -191,9 +193,9 @@ uint8_t	process_ADS131M08(void)
 
 //*****************************************************************************
 //
-//! Offset Callibration for adc
+//! Offset Calibration for adc
 //!
-//! \fn uint8_t	ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset)
+//! \fn uint8_t	ADS131M08_offset_calibration(_ADS131M08_ch ch, int32_t offset)
 //!
 //! NOTE:
 //!
@@ -201,14 +203,14 @@ uint8_t	process_ADS131M08(void)
 //!			0 on Error
 //!			1 on Success
 //*****************************************************************************
-uint8_t	ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset)
+uint8_t	ADS131M08_offset_calibration(_ADS131M08_ch ch, int32_t offset)
 {
 	uint8_t addr;
 	uint16_t regs;
 	uint32_t data;
 
 	if (ch >= NUMB_ADC_CH)
-		return 0;
+		return HAL_ERROR;
 
 //	if (offset & 0x80000000)
 //		data = (0xFFFFFF - (offset & 0x007FFFFF)) | 0x800000;
@@ -220,20 +222,22 @@ uint8_t	ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset)
 	addr = CH0_OCAL_MSB_ADDRESS + ch*5;
 
 	regs = (uint16_t)((data & 0xFFFF00) >> 8);
-	writeSingleRegister(addr, regs);
+	if (!writeSingleRegister(addr, regs))
+		return HAL_ERROR;
 
 	addr = CH0_OCAL_LSB_ADDRESS + ch*5;
 	regs = (uint16_t)((data & 0x0000FF) << 8);
-	writeSingleRegister(addr, regs);
+	if (!writeSingleRegister(addr, regs))
+		return HAL_ERROR;
 
-	return 1;
+	return HAL_OK;
 }
 
 //*****************************************************************************
 //
-//! Gain Callibration for adc
+//! Gain Calibration for adc
 //!
-//! \fn uint8_t	ADS131M08_gain_callibration(_ADS131M08_ch ch, uint32_t gain)
+//! \fn uint8_t	ADS131M08_gain_calibration(_ADS131M08_ch ch, uint32_t gain)
 //!
 //! NOTE:
 //!
@@ -241,22 +245,24 @@ uint8_t	ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset)
 //!			0 on Error
 //!			1 on Success
 //*****************************************************************************
-uint8_t	ADS131M08_gain_callibration(_ADS131M08_ch ch, uint32_t gain)
+uint8_t	ADS131M08_gain_calibration(_ADS131M08_ch ch, uint32_t gain)
 {
 	uint8_t addr, regs;
 
 	if (ch >= NUMB_ADC_CH)
-		return 0;
+		return HAL_ERROR;
 
 	addr = CH0_GCAL_MSB_ADDRESS + ch*5;
 	regs = (uint16_t)((gain & 0x00FFFF00) >> 8);
-	writeSingleRegister(addr, regs);
+	if (!writeSingleRegister(addr, regs))
+		return HAL_ERROR;
 
 	addr = CH0_GCAL_LSB_ADDRESS + ch*5;
 	regs = (uint16_t)((gain & 0x000000FF) << 8);
-	writeSingleRegister(addr, regs);
+	if (!writeSingleRegister(addr, regs))
+		return HAL_ERROR;
 
-	return 1;
+	return HAL_OK;
 }
 
 
@@ -350,7 +356,8 @@ HAL_StatusTypeDef ADS131M08_init(SPI_HandleTypeDef* hspi)
 HAL_StatusTypeDef ADS131M08_startup()
 
 {
-	int i=0;
+	uint8_t i=0;
+	uint8_t ch;
 
     // Reset Sequence
     HAL_GPIO_WritePin(adcConfM->cs.port, adcConfM->cs.pin, GPIO_PIN_SET);
@@ -367,6 +374,8 @@ HAL_StatusTypeDef ADS131M08_startup()
 
     /* (OPTIONAL) Validate first response word when beginning SPI communication: (0xFF20 | CHANCNT) */
 	uint16_t response = sendCommand(OPCODE_NULL);
+	if (response != 0xFF28)
+	    return HAL_ERROR;
 
 	/* (OPTIONAL) Define your initial register settings here */
     writeSingleRegister(CLOCK_ADDRESS, (CLOCK_DEFAULT & ~CLOCK_OSR_MASK) | CLOCK_OSR_16384);
@@ -378,9 +387,20 @@ HAL_StatusTypeDef ADS131M08_startup()
     writeSingleRegister(MODE_ADDRESS, MODE_DEFAULT);
 
     /* (OPTIONAL) Read back all registers */
-    ADS131M08_offset_callibration(ADC_CH4, -128500);
 
-    ADS131M08_offset_callibration(ADC_CH5, -77000);
+    //if ADC-Channel is enabled, do an default offset and gain calibration
+	for (ch=0; ch<NUMB_ADC_CH; ch++)
+	{
+		if (main_regs.cfg_regs.adc_enable_mask & (1<<ch) )
+		{
+		    ADS131M08_offset_calibration(ch, main_regs.cfg_regs.adc_calibration[ch].offset);
+		    ADS131M08_gain_calibration(ch, main_regs.cfg_regs.adc_calibration[ch].gain);
+		}
+	}
+
+    if (main_regs.cfg_regs.adc_enable_mask) {
+
+    }
 
     /* (OPTIONAL) Read back all registers */
     // Wakeup device

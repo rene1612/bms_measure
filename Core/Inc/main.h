@@ -79,19 +79,22 @@ typedef enum
 	NACK= 0x13
 }_REPLAY_TYPE;
 
+
 typedef struct
 {
-	float	min_thereshold;
-	float	max_thereshold;
+	float	min_threshold;
+	float	max_threshold;
 	uint8_t enable_mask;
 }_ALLERT_THRESHOLDS;
 
+#define ENABLE_MIN_THRESHOLD (0x01<<1)
+#define ENABLE_MAX_THRESHOLD (0x01<<2)
 
 typedef struct
 {
 	uint32_t	offset;
 	uint32_t	gain;
-}_ADC_CH_CALLIBEATION;
+}_ADC_CH_CALIBRATION;
 
 
 typedef enum
@@ -100,6 +103,7 @@ typedef enum
 	SYS_READ_REG_CMD,
 	SYS_WRITE_REG_CMD,
 	SYS_RESET_CMD,
+	SYS_APP_RESET_CMD,
 	SYS_BOOT_CMD,
 	SET_RELAY_CMD,
 	ALIVE_CMD,
@@ -133,8 +137,8 @@ typedef enum
  typedef struct
  {
   uint8_t 				adc_enable_mask;
-  _ADC_CH_CALLIBEATION	adc_callibration[CHANNEL_COUNT];
-  _ALLERT_THRESHOLDS	allert_thesholds[CHANNEL_COUNT];
+  _ADC_CH_CALIBRATION	adc_calibration[CHANNEL_COUNT];
+  _ALLERT_THRESHOLDS	allert_thresholds[CHANNEL_COUNT];
  }_BMS_MEASURE_CONFIG_REGS;
 
 
@@ -188,6 +192,10 @@ typedef enum
   * @see	config.h
   */
   uint32_t		sw_release_date;
+
+  uint64_t		sw_git_short_hash;
+
+  const char	sw_git_tag[16];
  }_SW_INFO_REGS;
 
 
@@ -209,6 +217,11 @@ typedef enum
   //
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  void set_sys_state (_SYS_STATE sys_state);
+ void JumpToBtld(void);
+ void JumpToApp(void);
+
+ /* Private typedef -----------------------------------------------------------*/
+ typedef void (*pFunction)(void);
 
  extern  _MAIN_REGS main_regs;
 

@@ -66,26 +66,46 @@ __attribute__((__section__(".board_info"))) const unsigned char BOARD_NAME[16] =
 __attribute__((__section__(".board_info"))) const _SW_INFO_REGS sw_info_regs = {
 		__SW_RELEASE__,
 		__SW_RELEASE_DATE__,
+		0x0000000000000000,
+		"no tag"
 };
 
 //alles was persistend (im Flash) gespeichert werden soll, z.b. Kalibration, ...
 __attribute__((__section__(".app_config"))) const _BMS_MEASURE_CONFIG_REGS app_cfg_regs = {
+	//enable mask
+	((0x00<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5) | (0x00<<ADC_CH6)),
 
-	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5)),
-	{},
-	{ //allert Thresholds
-		{ -30000.0, 30000.0, 0x03},
+	{//calibration
+		{-128500, 0x800000},	//adc channel 01, current measurement, unused at the moment
 #if (CHANNEL_COUNT > 1)
-		{ -30000.0, 30000.0, 0x03},
+		{-128500, 0x800000},	//adc channel 02, current measurement
 #endif
 #if (CHANNEL_COUNT > 2)
-		{ -30000.0, 30000.0, 0x03},
+		{-128500, 0x800000},	//adc channel 03, current measurement
 #endif
 #if (CHANNEL_COUNT > 3)
-		{ -30000.0, 30000.0, 0x03},
+		{-128500, 0x800000},	//adc channel 04, current measurement
 #endif
 #if (CHANNEL_COUNT > 4)
-		{ 20.0, 25.0, 0x02},
+		{-77000, 0x800000},		//adc channel 05, voltage measurement
+#endif
+#if (CHANNEL_COUNT > 5)
+		{0, 0x800000},			//adc channel 06, unused at the moment, current measurement based on shunt resistor
+#endif
+	},
+	{ //allert Thresholds
+		{ -30000.0, 30000.0, (ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD)},
+#if (CHANNEL_COUNT > 1)
+		{ -30000.0, 30000.0, (ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD)},
+#endif
+#if (CHANNEL_COUNT > 2)
+		{ -30000.0, 30000.0, (ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD)},
+#endif
+#if (CHANNEL_COUNT > 3)
+		{ -30000.0, 30000.0, (ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD)},
+#endif
+#if (CHANNEL_COUNT > 4)
+		{ 342.0, 475.0, (ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD)},
 #endif
 #if (CHANNEL_COUNT > 5)
 		{ 0.0, 0.0, 0x00}
@@ -309,19 +329,19 @@ uint8_t check_AllertThrescholds(void)
 			abs_value = adcConfM->chData[ch].v;
 
 			//upper threschold?
-			if (main_regs.cfg_regs.allert_thesholds[ch].enable_mask & 0x02)
+			if (main_regs.cfg_regs.allert_thresholds[ch].enable_mask & ENABLE_MAX_THRESHOLD)
 			{
 
-				if (abs_value >= main_regs.cfg_regs.allert_thesholds[ch].max_thereshold )
+				if (abs_value >= main_regs.cfg_regs.allert_thresholds[ch].max_threshold )
 				{
 					AllertHandler();
 				}
 			}
 			//lower threschold?
-			if (main_regs.cfg_regs.allert_thesholds[ch].enable_mask & 0x01)
+			if (main_regs.cfg_regs.allert_thresholds[ch].enable_mask & ENABLE_MIN_THRESHOLD)
 			{
 
-				if (abs_value <= main_regs.cfg_regs.allert_thesholds[ch].min_thereshold )
+				if (abs_value <= main_regs.cfg_regs.allert_thresholds[ch].min_threshold )
 				{
 					AllertHandler();
 				}
@@ -406,6 +426,119 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 
+/* Save checksum and length to flash crc area ----------------------------------------------------------*/
+/*
+uint8_t SaveCfgParams2Fl(void){
+
+	HAL_StatusTypeDef returnedERR=HAL_OK;
+	//_BMS_MEASURE_CONFIG_REGS app_cfg_regs;
+	uint32_t* p_app_cfg_regs=(uint32_t*)&main_regs.cfg_regs;
+	uint32_t length = 0;
+	uint32_t calculatedCrc;
+	int i;
+
+	//copy crc flash mem to temp ram variable before ereasing flash
+	//memcpy((void*)&dev_crc_regs, (void*)pDevCRCRegs, sizeof(_BMS_MEASURE_CONFIG_REGS));
+
+	//get and calc the new parameters for the spezefic flash area
+	length =  (uint32_t)(bl_ctrl_reg.flash_ptr - bl_ctrl_reg.flash_start_addr);
+	calculatedCrc=btld_CalcChecksum(bl_ctrl_reg.flash_start_addr, length);
+
+	//set the new params in the temp ram struct
+ 	switch(bl_ctrl_reg.flash_area) {
+
+		case BOOTLOADER:
+			dev_crc_regs.bl_length = length;
+			dev_crc_regs.bl_crc32 = calculatedCrc;
+			break;
+
+		case APPLICATION:
+			dev_crc_regs.app_length = length;
+			dev_crc_regs.app_crc32 = calculatedCrc;
+			break;
+
+		case APPLICATION_CONFIG:
+			dev_crc_regs.app_config_length = length;
+			dev_crc_regs.app_config_crc32 = calculatedCrc;
+			break;
+
+		case DEVICE_CONFIG:
+			dev_crc_regs.dev_config_length = length;
+			dev_crc_regs.dev_config_crc32 = calculatedCrc;
+			break;
+
+		case BL_DEV_CRC:
+			//flash_ptr = DEV_CRC_FL_ADDRESS;
+			//break;
+		default:
+			return HAL_ERROR;
+	}
+
+ 	//erease the flash page that holds the dev crc and length params
+ 	btld_EraseFlash(BL_DEV_CRC);
+
+	HAL_FLASH_Unlock();
+
+	//write back the updated, temp ram struct to dev crc flash
+	//@note: be aware when modifying the dev crc struct, we need a 4 Byte alignment, otherwise the copycode below will fail
+	for (i=0; i<(sizeof(_DEV_CRC_REGS)/4); i++) {
+		if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, (uint32_t)((uint32_t*)pDevCRCRegs+i), (uint64_t)p_dev_crc_regs[i] ) != HAL_OK) {
+			returnedERR=HAL_ERROR;
+			break;
+		}
+	}
+
+	HAL_FLASH_Lock();
+
+	return returnedERR;
+}
+*/
+
+/* Jump to application -------------------------------------------------------------*/
+void JumpToBtld(void){
+    uint32_t  JumpAddress = *(__IO uint32_t*)(DEV_BL_ADDRESS + 4);
+    pFunction Jump = (pFunction)JumpAddress;
+
+
+    HAL_RCC_DeInit();
+    HAL_DeInit();
+
+    //HAL_NVIC_DisableIRQ();
+
+    SysTick->CTRL = 0;
+    SysTick->LOAD = 0;
+    SysTick->VAL  = 0;
+
+#if (SET_VECTOR_TABLE)
+    SCB->VTOR = DEV_BL_ADDRESS;
+#endif
+
+    __set_MSP(*(__IO uint32_t*)DEV_BL_ADDRESS);
+    Jump();
+}
+
+/* Jump to application -------------------------------------------------------------*/
+void JumpToApp(void){
+    uint32_t  JumpAddress = *(__IO uint32_t*)(DEV_APP_ADDRESS + 4);
+    pFunction Jump = (pFunction)JumpAddress;
+
+
+    HAL_RCC_DeInit();
+    HAL_DeInit();
+
+    //HAL_NVIC_DisableIRQ();
+
+    SysTick->CTRL = 0;
+    SysTick->LOAD = 0;
+    SysTick->VAL  = 0;
+
+#if (SET_VECTOR_TABLE)
+    SCB->VTOR = DEV_APP_ADDRESS;
+#endif
+
+    __set_MSP(*(__IO uint32_t*)DEV_APP_ADDRESS);
+    Jump();
+}
 
 /* USER CODE END 4 */
 

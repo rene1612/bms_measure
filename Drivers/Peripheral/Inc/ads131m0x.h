@@ -193,7 +193,7 @@ typedef enum
 //****************************************************************************
 
 //#define NUM_REGISTERS             ((uint8_t) 64)
-#define ADS131M08_NUM_REGISTERS		((uint8_t)10 + CHANNEL_COUNT*5)
+#define ADS131M08_NUM_REGISTERS		((uint8_t) 64)
 
 
 
@@ -1740,7 +1740,8 @@ typedef struct
 	uint16_t CFG;         // address = 0x06, reset = 0x10,
 	uint16_t THRSHLD_MSB;         // address = 0x07, reset = 0x10,
 	uint16_t THRSHLD_LSB;         // address = 0x08, reset = 0x10,
-    _ADS131M08_cfg_regs CH[CHANNEL_COUNT];   // address = 0x0D, 0x0E, 0x0F, 0x10, 0x11, reset = 0x00, Reserved Register
+    _ADS131M08_cfg_regs CH[8];   // address = 0x0D, 0x0E, 0x0F, 0x10, 0x11, reset = 0x00, Reserved Register
+    uint16_t unused[12];		//unused reg addr space
     uint16_t REGMAP_CRC;           // address = 0x14, reset = 0x0F, General-Purpose IO Register
 }_ADS131M08_status_reg;
 
@@ -1814,8 +1815,8 @@ uint16_t    		calculateCRC(const uint8_t dataBytes[], uint8_t numberBytes, uint1
 void 				ADS131M08_parse_adc_data();
 HAL_StatusTypeDef	ADS131M08_receive_data();
 uint8_t				process_ADS131M08(void);
-uint8_t				ADS131M08_offset_callibration(_ADS131M08_ch ch, int32_t offset);
-uint8_t				ADS131M08_gain_callibration(_ADS131M08_ch ch, uint32_t gain);
+uint8_t				ADS131M08_offset_calibration(_ADS131M08_ch ch, int32_t offset);
+uint8_t				ADS131M08_gain_calibration(_ADS131M08_ch ch, uint32_t gain);
 
 // Getter functions
 uint16_t    		getRegisterValue(uint8_t address);

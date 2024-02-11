@@ -249,14 +249,18 @@ uint8_t	process_CAN(void)
 			//printf("ADC_OFFSET_CAL_CMD\n");
 			ch = CanRxData[1];
 			offset = *((int32_t *)(CanRxData+2));
-			ADS131M08_offset_callibration(ch, offset);
+			if (ADS131M08_offset_calibration(ch, offset)==HAL_OK) {
+				main_regs.cfg_regs.adc_calibration[ch].offset = offset;
+			}
 			break;
 
 		case ADC_GAIN_CAL_CMD:
 			//printf("ADC_OFFSET_CAL_CMD\n");
 			ch = CanRxData[1];
 			gain = *((uint32_t *)(CanRxData+2));
-			ADS131M08_gain_callibration(ch, gain);
+			if (ADS131M08_gain_calibration(ch, gain)) {
+				main_regs.cfg_regs.adc_calibration[ch].gain = gain;
+			}
 			break;
 
 		case ADC_READ_REG_CMD:
@@ -287,10 +291,20 @@ uint8_t	process_CAN(void)
 
 		case SYS_RESET_CMD:
 			//printf("SYS_RESET\n");
+			HAL_NVIC_SystemReset();
+			break;
+
+		case SYS_APP_RESET_CMD:
+			//printf("APP_RESET\n");
+			JumpToApp();
 			break;
 
 		case SYS_BOOT_CMD:
 			//printf("SYS_BOOT\n");
+			//leave a message in a bottle for the bootloader,
+			//so the btld will not start app again and stay in btld-mode
+			*(uint32_t *)_MAGIC_RAM_ADDRESS_ = _MAGIC_RAM_DWORD_;
+			JumpToBtld();
 			break;
 
 		case SYS_READ_REG_CMD:
