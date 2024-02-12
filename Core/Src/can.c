@@ -25,6 +25,7 @@
 #include "ads131m0x.h"
 #include "main.h"
 
+extern const _DEV_CONFIG_REGS* pDevConfig;
 
 //ADS131M08_Can_Msg	ads_can_msg={};
 CAN_TxHeaderTypeDef	TxHeader, ReplayHeader;
@@ -33,10 +34,8 @@ uint32_t            TxMailbox;
 uint8_t				can_task_scheduler;
 CAN_RxHeaderTypeDef RxHeader;
 uint8_t				can_replay_msg;
-
 uint8_t             CanRxData[8];
-
-CAN_FilterTypeDef 	canfilterconfig;
+//CAN_FilterTypeDef 	canfilterconfig;
 
 /* USER CODE END 0 */
 
@@ -54,7 +53,7 @@ void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = 18;
+  hcan.Init.Prescaler = pDevConfig->app_can_bitrate;
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
@@ -69,31 +68,78 @@ void MX_CAN_Init(void)
   {
     Error_Handler();
   }
+
   /* USER CODE BEGIN CAN_Init 2 */
   can_task_scheduler = PROCESS_NO_TASK;
 
+  main_regs.can_rx_cmd_id = (pDevConfig->dev_id<<4) + CANRX_SA;
+  main_regs.can_tx_data_id = (pDevConfig->dev_id<<4) + CANTX_SA;
+  main_regs.can_tx_heartbeat_id = (pDevConfig->dev_id<<4) + CANTX_HA;
+  main_regs.can_filterMask = RXFILTERMASK;
+  main_regs.can_filterID = (pDevConfig->dev_id<<8); // Only accept bootloader CAN message ID
+
   TxHeader.DLC = 5;
   TxHeader.IDE = CAN_ID_STD;
-  TxHeader.StdId = BMS_MEASURE_CAN_ID;
+  TxHeader.StdId = main_regs.can_tx_data_id;
   TxHeader.RTR = CAN_RTR_DATA;
 
   ReplayHeader.DLC = 2;
   ReplayHeader.IDE = CAN_ID_STD;
-  ReplayHeader.StdId = BMS_MEASURE_CAN_ID;
+  ReplayHeader.StdId = main_regs.can_tx_data_id;
   ReplayHeader.RTR = CAN_RTR_DATA;
 
-  canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
-  canfilterconfig.FilterBank = 13;  // which filter bank to use from the assigned ones
-  canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-  canfilterconfig.FilterIdHigh = 0x446<<5;
-  canfilterconfig.FilterIdLow = 0;
-  canfilterconfig.FilterMaskIdHigh = 0x446<<5;
-  canfilterconfig.FilterMaskIdLow = 0x0000;
-  canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
-  canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
-  canfilterconfig.SlaveStartFilterBank = 14;  // how many filters to assign to the CAN1 (master can)
 
-  HAL_CAN_ConfigFilter(&hcan, &canfilterconfig);
+	/* config_can_filter ---------------------------------------------------------*/
+	/* Setup Can-Filter                                                           */
+   CAN_FilterTypeDef sFilterConfig;
+
+  /*##-2- Configure the CAN Filter ###########################################*/
+  //sFilterConfig.FilterNumber = 0;
+  sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+  sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+  sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+  sFilterConfig.FilterActivation = CAN_FILTER_ENABLE;
+  sFilterConfig.FilterBank = 13;
+
+  sFilterConfig.FilterIdHigh = main_regs.can_filterID << 5;
+  sFilterConfig.FilterIdLow = 0;
+
+  sFilterConfig.FilterMaskIdHigh = main_regs.can_filterMask << 5;
+  sFilterConfig.FilterMaskIdLow = 0;
+  sFilterConfig.SlaveStartFilterBank = 14;  // how many filters to assign to the CAN1 (master can)
+
+  if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK)
+  {
+	Error_Handler();
+  }
+
+  /* USER CODE END CAN_Init 2 */
+
+//
+//  can_task_scheduler = PROCESS_NO_TASK;
+//
+//  TxHeader.DLC = 5;
+//  TxHeader.IDE = CAN_ID_STD;
+//  TxHeader.StdId = BMS_MEASURE_CAN_ID;
+//  TxHeader.RTR = CAN_RTR_DATA;
+//
+//  ReplayHeader.DLC = 2;
+//  ReplayHeader.IDE = CAN_ID_STD;
+//  ReplayHeader.StdId = BMS_MEASURE_CAN_ID;
+//  ReplayHeader.RTR = CAN_RTR_DATA;
+//
+//  canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
+//  canfilterconfig.FilterBank = 13;  // which filter bank to use from the assigned ones
+//  canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
+//  canfilterconfig.FilterIdHigh = 0x446<<5;
+//  canfilterconfig.FilterIdLow = 0;
+//  canfilterconfig.FilterMaskIdHigh = 0x446<<5;
+//  canfilterconfig.FilterMaskIdLow = 0x0000;
+//  canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
+//  canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
+//  canfilterconfig.SlaveStartFilterBank = 14;  // how many filters to assign to the CAN1 (master can)
+//
+//  HAL_CAN_ConfigFilter(&hcan, &canfilterconfig);
   /* USER CODE END CAN_Init 2 */
 
 }

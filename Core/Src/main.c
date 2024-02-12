@@ -63,7 +63,7 @@ uint16_t timer_10ms;
 
 __attribute__((__section__(".board_info"))) const unsigned char BOARD_NAME[16] = "BMS-MEASURE-APP";
 
-__attribute__((__section__(".board_info"))) const _SW_INFO_REGS sw_info_regs = {
+__attribute__((__section__(".sw_info"))) const _SW_INFO_REGS sw_info_regs = {
 		__SW_RELEASE__,
 		__SW_RELEASE_DATE__,
 		0x0000000000000000,
@@ -115,7 +115,6 @@ __attribute__((__section__(".app_config"))) const _BMS_MEASURE_CONFIG_REGS app_c
 
 const _DEV_CONFIG_REGS* pDevConfig = (const _DEV_CONFIG_REGS*)DEV_CONFIG_FL_ADDRESS;
 
-//const _DEV_CONFIG_REGS* pDevConfig = (const _DEV_CONFIG_REGS*)&dev_config_regs;
 
 /**
  * @var		main_regs
@@ -132,6 +131,12 @@ _MAIN_REGS main_regs = {
 	STATE_OFF,
 
 	ALIVE_TIMEOUT_10MS,
+
+	0,
+	0,
+	0,
+	0,
+	0,
 
 	{}
 

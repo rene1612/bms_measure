@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <dev_config.h>
+#include "dev_config.h"
 
 /* USER CODE END Includes */
 
@@ -150,15 +150,21 @@ typedef enum
  */
  typedef struct
  {
-  uint8_t						ctrl;
+	uint8_t						ctrl;
 
-  _SYS_STATE					sys_state;
+	_SYS_STATE					sys_state;
 
-  uint8_t						monitor_led_state;
+	uint8_t						monitor_led_state;
 
-  uint8_t						alive_timeout;
+	uint8_t						alive_timeout;
 
-  _BMS_MEASURE_CONFIG_REGS		cfg_regs;
+	uint32_t					can_rx_cmd_id;
+	uint32_t					can_tx_data_id;
+	uint32_t					can_tx_heartbeat_id;
+	uint32_t 					can_filterMask;
+	uint32_t 					can_filterID; // Only accept bootloader CAN message ID
+
+	_BMS_MEASURE_CONFIG_REGS	cfg_regs;
  }_MAIN_REGS;
 
 
@@ -211,11 +217,11 @@ typedef enum
   #define REG_ADDR_AUTO_INC	0x80
 
 
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //
-  // Funktionen(Prototypes)
-  //
-  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Funktionen(Prototypes)
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  void set_sys_state (_SYS_STATE sys_state);
  void JumpToBtld(void);
  void JumpToApp(void);

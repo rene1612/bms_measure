@@ -67,6 +67,11 @@ SECTIONS
   	KEEP(*(.board_info))
   } >FLASH
   
+  .sw_info : 
+  {
+  	KEEP(*(.sw_info))
+  } >FLASH
+  
   /* Configuration for APP GOES INTO FLASH1 */
   .app_config : 
   {

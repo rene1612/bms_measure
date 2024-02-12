@@ -36,8 +36,12 @@ extern CAN_HandleTypeDef hcan;
 
 /* USER CODE BEGIN Private defines */
 
+#define CANRX_SA 0x01
+#define CANTX_SA 0x02
+#define CANTX_HA 0x03
+#define RXFILTERMASK 0xFFFFFFFC
 
-#define BMS_MEASURE_CAN_ID		0x448
+//#define BMS_MEASURE_CAN_ID		0x448
 
 
 
