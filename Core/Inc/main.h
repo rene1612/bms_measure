@@ -273,7 +273,7 @@ typedef enum
 #define SW_RELEASE_DAY				8
 #define SW_RELEASE_MONTH			12
 #define SW_RELEASE_YEAR				2023
-#define __SW_RELEASE_DATE__			((SW_RELEASE_DAY<<24 ) | (SW_RELEASE_MONTH<<18) | SW_RELEASE_YEAR)
+#define __SW_RELEASE_DATE__			((SW_RELEASE_DAY<<24 ) | (SW_RELEASE_MONTH<<16) | SW_RELEASE_YEAR)
 
 
  /**
