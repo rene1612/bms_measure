@@ -164,7 +164,8 @@ typedef enum
 	uint32_t 					can_filterMask;
 	uint32_t 					can_filterID; // Only accept bootloader CAN message ID
 
-	_BMS_MEASURE_CONFIG_REGS	cfg_regs;
+	_BMS_MEASURE_CONFIG_REGS	cfg_regs;	//copy of app-config
+	_DEV_CONFIG_REGS			dev_config;	//copy of dev-config
  }_MAIN_REGS;
 
 

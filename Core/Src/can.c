@@ -53,7 +53,7 @@ void MX_CAN_Init(void)
 
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
-  hcan.Init.Prescaler = pDevConfig->app_can_bitrate;
+  hcan.Init.Prescaler = main_regs.dev_config.app_can_bitrate;
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
@@ -72,11 +72,11 @@ void MX_CAN_Init(void)
   /* USER CODE BEGIN CAN_Init 2 */
   can_task_scheduler = PROCESS_NO_TASK;
 
-  main_regs.can_rx_cmd_id = (pDevConfig->dev_id<<4) + CANRX_SA;
-  main_regs.can_tx_data_id = (pDevConfig->dev_id<<4) + CANTX_SA;
-  main_regs.can_tx_heartbeat_id = (pDevConfig->dev_id<<4) + CANTX_HA;
+  main_regs.can_rx_cmd_id = (main_regs.dev_config.dev_id<<4) + CANRX_SA;
+  main_regs.can_tx_data_id = (main_regs.dev_config.dev_id<<4) + CANTX_SA;
+  main_regs.can_tx_heartbeat_id = (main_regs.dev_config.dev_id<<4) + CANTX_HA;
   main_regs.can_filterMask = RXFILTERMASK;
-  main_regs.can_filterID = (pDevConfig->dev_id<<8); // Only accept bootloader CAN message ID
+  main_regs.can_filterID = (main_regs.dev_config.dev_id<<4); // Only accept bootloader CAN message ID
 
   TxHeader.DLC = 5;
   TxHeader.IDE = CAN_ID_STD;
@@ -423,7 +423,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 		Error_Handler();
 	}
 
-	if ((RxHeader.StdId == 0x446))
+	if ((RxHeader.StdId == main_regs.can_rx_cmd_id))
 	{
 		can_task_scheduler |= PROCESS_CAN_ON_MSG;
     	main_task_scheduler |= PROCESS_CAN;

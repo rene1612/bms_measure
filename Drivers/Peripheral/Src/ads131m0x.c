@@ -176,15 +176,26 @@ uint8_t	process_ADS131M08(void)
 
 	if (ads131m08_task_scheduler & ADS131M08_PARSE_NEW_DATA)
 	{
+		if (ADS131M08_receive_data() == HAL_OK) {
 
-	    if (adcConfM->Lock == DATA_UNLOCKED)
-	    {
-			ADS131M08_receive_data();
-	    	adcConfM->Lock = DATA_LOCKED;
-			ADS131M08_parse_adc_data();
-	    	adcConfM->Lock = DATA_UNLOCKED;
-			ads131m08_task_scheduler &= ~ADS131M08_PARSE_NEW_DATA;
-	    }
+		    if (adcConfM->Lock == DATA_UNLOCKED)
+		    {
+		    	adcConfM->Lock = DATA_LOCKED;
+				ADS131M08_parse_adc_data();
+				ads131m08_task_scheduler &= ~ADS131M08_PARSE_NEW_DATA;
+		    	adcConfM->Lock = DATA_UNLOCKED;
+		    }
+
+		}
+
+//	    if (adcConfM->Lock == DATA_UNLOCKED)
+//	    {
+//			ADS131M08_receive_data();
+//	    	adcConfM->Lock = DATA_LOCKED;
+//			ADS131M08_parse_adc_data();
+//	    	adcConfM->Lock = DATA_UNLOCKED;
+//			ads131m08_task_scheduler &= ~ADS131M08_PARSE_NEW_DATA;
+//	    }
 	}
 
 	return ads131m08_task_scheduler;
@@ -247,7 +258,8 @@ uint8_t	ADS131M08_offset_calibration(_ADS131M08_ch ch, int32_t offset)
 //*****************************************************************************
 uint8_t	ADS131M08_gain_calibration(_ADS131M08_ch ch, uint32_t gain)
 {
-	uint8_t addr, regs;
+	uint8_t addr;
+	uint32_t regs;
 
 	if (ch >= NUMB_ADC_CH)
 		return HAL_ERROR;
@@ -299,7 +311,7 @@ HAL_StatusTypeDef ADS131M08_init(SPI_HandleTypeDef* hspi)
 	adcConfM->txBuf           = (uint8_t*)malloc(adcConfM->bufLen);
 	memset(adcConfM->txBuf, 0, adcConfM->bufLen);
 	//adcConfM->ch = 0;
-	//adcConfM->Lock = DATA_UNLOCKED;
+	adcConfM->Lock = DATA_UNLOCKED;
 
 	for(i=0; i<CHANNEL_COUNT; i++ )
 	{
@@ -397,10 +409,6 @@ HAL_StatusTypeDef ADS131M08_startup()
 		    ADS131M08_gain_calibration(ch, main_regs.cfg_regs.adc_calibration[ch].gain);
 		}
 	}
-
-    if (main_regs.cfg_regs.adc_enable_mask) {
-
-    }
 
     /* (OPTIONAL) Read back all registers */
     // Wakeup device
@@ -1129,14 +1137,8 @@ HAL_StatusTypeDef ADS131M08_receive_data()
     //result = HAL_SPI_Receive_IT(adcConfM->hspi, adcConfM->rxBuf, adcConfM->bufLen);
     result = HAL_SPI_Receive(adcConfM->hspi, adcConfM->rxBuf, adcConfM->bufLen, 50);
 
-    if (result != HAL_OK)
-    {
-        ADS131M08_control_cs_signal(SET_SIGNAL);
-    	return result;
-    }
-
     ADS131M08_control_cs_signal(SET_SIGNAL);
-    return HAL_OK;
+    return result;
 }
 
 

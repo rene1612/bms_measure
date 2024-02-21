@@ -76,18 +76,18 @@ __attribute__((__section__(".app_config"))) const _BMS_MEASURE_CONFIG_REGS app_c
 	((0x00<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5) | (0x00<<ADC_CH6)),
 
 	{//calibration
-		{-128500, 0x800000},	//adc channel 01, current measurement, unused at the moment
+		{-128400, 0x800000},	//adc channel 01, current measurement, unused at the moment
 #if (CHANNEL_COUNT > 1)
-		{-128500, 0x800000},	//adc channel 02, current measurement
+		{-114200, 0x800000},	//adc channel 02, current measurement
 #endif
 #if (CHANNEL_COUNT > 2)
-		{-128500, 0x800000},	//adc channel 03, current measurement
+		{-87500, 0x800000},		//adc channel 03, current measurement
 #endif
 #if (CHANNEL_COUNT > 3)
-		{-128500, 0x800000},	//adc channel 04, current measurement
+		{-125100, 0x800000},		//adc channel 04, current measurement
 #endif
 #if (CHANNEL_COUNT > 4)
-		{-77000, 0x800000},		//adc channel 05, voltage measurement
+		{-77200, 0x7E1AD8},		//adc channel 05, voltage measurement
 #endif
 #if (CHANNEL_COUNT > 5)
 		{0, 0x800000},			//adc channel 06, unused at the moment, current measurement based on shunt resistor
@@ -105,7 +105,7 @@ __attribute__((__section__(".app_config"))) const _BMS_MEASURE_CONFIG_REGS app_c
 		{ -30000.0, 30000.0, (ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD)},
 #endif
 #if (CHANNEL_COUNT > 4)
-		{ 342.0, 475.0, (ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD)},
+		{ 342.0, 475.0, (0)},//ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD
 #endif
 #if (CHANNEL_COUNT > 5)
 		{ 0.0, 0.0, 0x00}
@@ -177,7 +177,11 @@ int main(void)
 	alive_timer = 0;
 	timer_10ms = 0;
 
+	//copy app-config from flash to ram (we will use it from ram)
 	memcpy(&main_regs.cfg_regs, &app_cfg_regs, sizeof(_BMS_MEASURE_CONFIG_REGS));
+
+	//copy dev-config from flash to ram (we will use it from ram)
+	memcpy(&main_regs.dev_config, pDevConfig, sizeof(_DEV_CONFIG_REGS));
 
   /* USER CODE END 1 */
 
