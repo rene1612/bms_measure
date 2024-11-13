@@ -47,6 +47,7 @@ MEMORY
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 20K
   FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 92K
   FLASH1    (rx)    : ORIGIN = 0x801F000,   LENGTH = 2K
+  FLASH2    (xrw)    : ORIGIN = 0x801FC00,   LENGTH = 1K
 }
 
 /* Sections */
@@ -78,6 +79,13 @@ SECTIONS
      . = ALIGN(4);
   	KEEP(*(.app_config))
   } >FLASH1
+  
+.dev_config : 
+  {
+  	KEEP(*(.dev_config))
+    . = ALIGN(4);
+  } >FLASH2
+  
 /* USER CODE END PTD */
 
   /* The program code and other data into "FLASH" Rom type memory */

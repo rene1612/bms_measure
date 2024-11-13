@@ -282,6 +282,20 @@ uint8_t	process_CAN(void)
 						HAL_GPIO_WritePin(RELAY_3_GPIO_Port, RELAY_3_Pin, GPIO_PIN_RESET);
 					break;
 
+				case 4:
+					if (CanRxData[2])
+						HAL_GPIO_WritePin(RELAY_4_GPIO_Port, RELAY_4_Pin, GPIO_PIN_SET);
+					else
+						HAL_GPIO_WritePin(RELAY_4_GPIO_Port, RELAY_4_Pin, GPIO_PIN_RESET);
+					break;
+
+				case 5:
+					if (CanRxData[2])
+						HAL_GPIO_WritePin(RELAY_5_GPIO_Port, RELAY_5_Pin, GPIO_PIN_SET);
+					else
+						HAL_GPIO_WritePin(RELAY_5_GPIO_Port, RELAY_5_Pin, GPIO_PIN_RESET);
+					break;
+
 				default:
 					break;
 			}

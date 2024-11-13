@@ -61,6 +61,17 @@ uint8_t adc_enable_mask;
 uint8_t alive_timer;
 uint16_t timer_10ms;
 
+#ifdef __DEBUG__
+__attribute__((__section__(".dev_config"))) const _DEV_CONFIG_REGS dev_config_regs = {
+		__DEV_ID__,
+		__BOARD_TYPE__,
+		__BOARD_VERSION__,
+		DEAULT_BL_CAN_BITRATE,
+		DEAULT_APP_CAN_BITRATE,
+		__BOARD_MF_DATE__
+};
+#endif
+
 __attribute__((__section__(".board_info"))) const unsigned char BOARD_NAME[16] = "BMS-MEASURE-APP";
 
 __attribute__((__section__(".sw_info"))) const _SW_INFO_REGS sw_info_regs = {

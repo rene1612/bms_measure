@@ -31,7 +31,28 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "dev_config.h"
+
+#ifndef __DEV_ID__
+	#define __DEV_ID__					0x2F
+#endif
+
+#ifndef __BOARD_VERSION__
+	#define __BOARD_VERSION__			(0x0100)
+#endif
+
+#ifndef __BOARD_TYPE__
+	#define __BOARD_TYPE__				((_BOARD_TYPE)BMS_MEASURE_BOARD)
+#endif
+
+#ifndef __BOARD_MF_DATE__
+	#define BOARD_MF_DAY				7
+	#define BOARD_MF_MONTH				9
+	#define BOARD_MF_YEAR				2023
+	#define __BOARD_MF_DATE__			((BOARD_MF_DAY<<24 ) | (BOARD_MF_MONTH<<16) | BOARD_MF_YEAR)
+#endif
+
+
+#include <dev_config.h>
 
 /* USER CODE END Includes */
 
@@ -99,20 +120,26 @@ typedef struct
 
 typedef enum
 {
-	NO_CMD,
+	NO_CMD=0,
 	SYS_READ_REG_CMD,
 	SYS_WRITE_REG_CMD,
 	SYS_RESET_CMD,
 	SYS_APP_RESET_CMD,
 	SYS_BOOT_CMD,
-	SET_RELAY_CMD,
-	ALIVE_CMD,
-	ADC_OFFSET_CAL_CMD,
+	\
+	ALIVE_CMD=6,
+	\
+	REPLAY_AKC_NACK_CMD=0x11,
+	REPLAY_DATA_CMD=0x13,
+	\
+	ADC_OFFSET_CAL_CMD=0x20,
 	ADC_GAIN_CAL_CMD,
 	ADC_READ_REG_CMD,
 	ADC_WRITE_REG_CMD,
-	REPLAY_AKC_NACK_CMD,
-	REPLAY_DATA_CMD,
+	\
+	SET_RELAY_CMD=0x30,
+	GET_RELAY_CMD,
+	\
 	END_CMD
 }_CAN_CMD;
 
@@ -270,10 +297,10 @@ typedef enum
 #define APP_CAN_BITRATE			500000UL
 
 #define __DEV_SIGNATURE__			0x12
-#define __SW_RELEASE__				0x0100
-#define SW_RELEASE_DAY				8
-#define SW_RELEASE_MONTH			12
-#define SW_RELEASE_YEAR				2023
+#define __SW_RELEASE__				0x0101
+#define SW_RELEASE_DAY				13
+#define SW_RELEASE_MONTH			11
+#define SW_RELEASE_YEAR				2024
 #define __SW_RELEASE_DATE__			((SW_RELEASE_DAY<<24 ) | (SW_RELEASE_MONTH<<16) | SW_RELEASE_YEAR)
 
 
