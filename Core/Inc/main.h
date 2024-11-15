@@ -31,13 +31,14 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#undef __DEV_ID__
 #ifndef __DEV_ID__
 	#define __DEV_ID__					0x2F
 #endif
 
 #ifndef __BOARD_VERSION__
 	#define __BOARD_VERSION__			(0x0100)
+//	#define __BOARD_VERSION__			(0x0201)
 #endif
 
 #ifndef __BOARD_TYPE__
@@ -286,6 +287,58 @@ typedef enum
 
 /* USER CODE BEGIN Private defines */
 
+#undef LED_GREEN_Pin
+#undef LED_GREEN_GPIO_Port
+#undef LED_RED_Pin
+#undef LED_RED_GPIO_Port
+#undef RELAY_1_Pin
+#undef RELAY_1_GPIO_Port
+#undef RELAY_2_Pin
+#undef RELAY_2_GPIO_Port
+#undef RELAY_3_Pin
+#undef RELAY_3_GPIO_Port
+#undef RELAY_4_Pin
+#undef RELAY_4_GPIO_Port
+#undef RELAY_5_Pin
+#undef RELAY_5_GPIO_Port
+
+
+#if __BOARD_VERSION__ == 0x0100
+	#define LED_GREEN_Pin GPIO_PIN_12
+	#define LED_GREEN_GPIO_Port GPIOB
+	#define RELAY_1_Pin GPIO_PIN_13
+	#define RELAY_1_GPIO_Port GPIOB
+	#define RELAY_2_Pin GPIO_PIN_14
+	#define RELAY_2_GPIO_Port GPIOB
+	#define RELAY_3_Pin GPIO_PIN_15
+	#define RELAY_3_GPIO_Port GPIOB
+
+	#define LED_RED_Pin LED_GREEN_Pin
+	#define LED_RED_GPIO_Port LED_GREEN_GPIO_Port
+
+	#define RELAY_4_Pin RELAY_2_Pin
+	#define RELAY_4_GPIO_Port RELAY_2_GPIO_Port
+	#define RELAY_5_Pin RELAY_3_Pin
+	#define RELAY_5_GPIO_Port RELAY_3_GPIO_Port
+
+
+#elif __BOARD_VERSION__ >= 0x200
+	#define LED_GREEN_Pin GPIO_PIN_12
+	#define LED_GREEN_GPIO_Port GPIOB
+	#define LED_RED_Pin GPIO_PIN_13
+	#define LED_RED_GPIO_Port GPIOB
+	#define RELAY_1_Pin GPIO_PIN_14
+	#define RELAY_1_GPIO_Port GPIOB
+	#define RELAY_2_Pin GPIO_PIN_15
+	#define RELAY_2_GPIO_Port GPIOB
+	#define RELAY_3_Pin GPIO_PIN_9
+	#define RELAY_3_GPIO_Port GPIOA
+	#define RELAY_4_Pin GPIO_PIN_10
+	#define RELAY_4_GPIO_Port GPIOA
+	#define RELAY_5_Pin GPIO_PIN_11
+	#define RELAY_5_GPIO_Port GPIOA
+#endif
+
 #define PROCESS_NO_TASK			0x00
 #define PROCESS_ADS131M08		0x01
 #define PROCESS_CAN				0x02
@@ -298,7 +351,7 @@ typedef enum
 
 #define __DEV_SIGNATURE__			0x12
 #define __SW_RELEASE__				0x0101
-#define SW_RELEASE_DAY				13
+#define SW_RELEASE_DAY				14
 #define SW_RELEASE_MONTH			11
 #define SW_RELEASE_YEAR				2024
 #define __SW_RELEASE_DATE__			((SW_RELEASE_DAY<<24 ) | (SW_RELEASE_MONTH<<16) | SW_RELEASE_YEAR)

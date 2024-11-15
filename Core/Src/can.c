@@ -54,6 +54,7 @@ void MX_CAN_Init(void)
   /* USER CODE END CAN_Init 1 */
   hcan.Instance = CAN1;
   hcan.Init.Prescaler = main_regs.dev_config.app_can_bitrate;
+  //hcan.Init.Prescaler = 12;
   hcan.Init.Mode = CAN_MODE_NORMAL;
   hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
@@ -282,6 +283,8 @@ uint8_t	process_CAN(void)
 						HAL_GPIO_WritePin(RELAY_3_GPIO_Port, RELAY_3_Pin, GPIO_PIN_RESET);
 					break;
 
+#if __BOARD_VERSION__ >= 0x200
+
 				case 4:
 					if (CanRxData[2])
 						HAL_GPIO_WritePin(RELAY_4_GPIO_Port, RELAY_4_Pin, GPIO_PIN_SET);
@@ -295,7 +298,7 @@ uint8_t	process_CAN(void)
 					else
 						HAL_GPIO_WritePin(RELAY_5_GPIO_Port, RELAY_5_Pin, GPIO_PIN_RESET);
 					break;
-
+#endif
 				default:
 					break;
 			}
