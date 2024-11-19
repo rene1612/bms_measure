@@ -306,6 +306,7 @@ typedef enum
 #if __BOARD_VERSION__ == 0x0100
 	#define LED_GREEN_Pin GPIO_PIN_12
 	#define LED_GREEN_GPIO_Port GPIOB
+
 	#define RELAY_1_Pin GPIO_PIN_13
 	#define RELAY_1_GPIO_Port GPIOB
 	#define RELAY_2_Pin GPIO_PIN_14
@@ -313,16 +314,15 @@ typedef enum
 	#define RELAY_3_Pin GPIO_PIN_15
 	#define RELAY_3_GPIO_Port GPIOB
 
-	#define LED_RED_Pin LED_GREEN_Pin
+	#define LED_RED_Pin 0
 	#define LED_RED_GPIO_Port LED_GREEN_GPIO_Port
 
-	#define RELAY_4_Pin RELAY_2_Pin
+	#define RELAY_4_Pin 0
 	#define RELAY_4_GPIO_Port RELAY_2_GPIO_Port
-	#define RELAY_5_Pin RELAY_3_Pin
+	#define RELAY_5_Pin 0
 	#define RELAY_5_GPIO_Port RELAY_3_GPIO_Port
 
-
-#elif __BOARD_VERSION__ >= 0x200
+#elif __BOARD_VERSION__ >= 0x0200
 	#define LED_GREEN_Pin GPIO_PIN_12
 	#define LED_GREEN_GPIO_Port GPIOB
 	#define LED_RED_Pin GPIO_PIN_13
@@ -337,7 +337,8 @@ typedef enum
 	#define RELAY_4_GPIO_Port GPIOA
 	#define RELAY_5_Pin GPIO_PIN_11
 	#define RELAY_5_GPIO_Port GPIOA
-#endif
+
+ #endif
 
 #define PROCESS_NO_TASK			0x00
 #define PROCESS_ADS131M08		0x01
