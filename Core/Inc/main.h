@@ -31,18 +31,21 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#ifndef __BOARD_TYPE__
+	#define __BOARD_TYPE__				((_BOARD_TYPE)BMS_MEASURE_BOARD)
+#endif
+
+//
+#define __BRD_ID__						0x00
 
 #ifndef __DEV_ID__
-	#define __DEV_ID__					0x2F
+	#define __DEV_ID__					(__BOARD_TYPE__ + __BRD_ID__)
 #endif
 
 #ifndef __BOARD_VERSION__
 	#define __BOARD_VERSION__			(0x0100)
 #endif
 
-#ifndef __BOARD_TYPE__
-	#define __BOARD_TYPE__				((_BOARD_TYPE)BMS_MEASURE_BOARD)
-#endif
 
 #ifndef __BOARD_MF_DATE__
 	#define BOARD_MF_DAY				7
@@ -89,8 +92,11 @@ extern uint8_t alive_timer;
 typedef enum
 {
 	CURRENT_MA_FLOAT,
+	CURRENT_MA_FP_INT16,
 	VOLTAGE_MV_FLOAT,
-	TEMPERATURE_GC_FLOAT
+	VOLTAGE_MV_FP_INT16,
+	TEMPERATURE_GC_FLOAT,
+	TEMPERATURE_GC_FP_INT16
 }_MEASURE_TYPE;
 
 
@@ -286,6 +292,37 @@ typedef enum
 
 /* USER CODE BEGIN Private defines */
 
+#if __BOARD_VERSION__ == 0x0100
+
+#undef LED_RED_Pin
+#undef LED_RED_GPIO_Port
+#undef RELAY_1_Pin
+#undef RELAY_1_GPIO_Port
+#undef RELAY_2_Pin
+#undef RELAY_2_GPIO_Port
+#undef RELAY_3_Pin
+#undef RELAY_3_GPIO_Port
+#undef RELAY_4_Pin
+#undef RELAY_4_GPIO_Port
+#undef RELAY_5_Pin
+#undef RELAY_5_GPIO_Port
+
+#define LED_RED_Pin 0
+#define LED_RED_GPIO_Port GPIOB
+#define RELAY_1_Pin GPIO_PIN_13
+#define RELAY_1_GPIO_Port GPIOB
+#define RELAY_2_Pin GPIO_PIN_14
+#define RELAY_2_GPIO_Port GPIOB
+#define RELAY_3_Pin GPIO_PIN_15
+#define RELAY_3_GPIO_Port GPIOB
+
+#define RELAY_4_Pin 0
+#define RELAY_5_Pin 0
+
+#elif __BOARD_VERSION__ >= 0x0200
+
+#endif
+
 #define PROCESS_NO_TASK			0x00
 #define PROCESS_ADS131M08		0x01
 #define PROCESS_CAN				0x02
@@ -298,7 +335,7 @@ typedef enum
 
 #define __DEV_SIGNATURE__			0x12
 #define __SW_RELEASE__				0x0101
-#define SW_RELEASE_DAY				13
+#define SW_RELEASE_DAY				15
 #define SW_RELEASE_MONTH			11
 #define SW_RELEASE_YEAR				2024
 #define __SW_RELEASE_DATE__			((SW_RELEASE_DAY<<24 ) | (SW_RELEASE_MONTH<<16) | SW_RELEASE_YEAR)

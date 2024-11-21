@@ -341,6 +341,7 @@ HAL_StatusTypeDef ADS131M08_init(SPI_HandleTypeDef* hspi)
     if(result != HAL_OK)
     {
     	adcConfM->stat = ADS131M08_INIT_FAIL;
+        return result;
     }
 
     //enable DRDY-falling edge int to start continous DMA-read

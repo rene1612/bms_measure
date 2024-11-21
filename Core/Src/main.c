@@ -268,6 +268,10 @@ int main(void)
 	  {
 		  main_task_scheduler &= ~PROCESS_100_MS_TASK;
 		  HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+
+
+		  //main_task_scheduler |= PROCESS_CAN;
+		  //can_task_scheduler |= PROCESS_CAN_SEND_NEW_ALIVE_DATA;
 	  }
 
 

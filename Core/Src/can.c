@@ -254,6 +254,19 @@ uint8_t	process_CAN(void)
 	}
 
 
+	if (can_task_scheduler & PROCESS_CAN_SEND_NEW_ALIVE_DATA)
+	{
+		CanTxData[0] = ALIVE_CMD;
+		ReplayHeader.DLC = 1;
+
+		can_task_scheduler &= ~PROCESS_CAN_SEND_NEW_ALIVE_DATA;
+		can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
+
+		//can_task_scheduler &= ~PROCESS_CAN_SEND_NEW_ADC_DATA;
+		//return can_task_scheduler;
+	}
+
+
 	if (can_task_scheduler & PROCESS_CAN_ON_MSG)
 	{
 		switch (CanRxData[0])
@@ -282,6 +295,8 @@ uint8_t	process_CAN(void)
 						HAL_GPIO_WritePin(RELAY_3_GPIO_Port, RELAY_3_Pin, GPIO_PIN_RESET);
 					break;
 
+#if __BOARD_VERSION__ >= 0x0200
+
 				case 4:
 					if (CanRxData[2])
 						HAL_GPIO_WritePin(RELAY_4_GPIO_Port, RELAY_4_Pin, GPIO_PIN_SET);
@@ -295,6 +310,7 @@ uint8_t	process_CAN(void)
 					else
 						HAL_GPIO_WritePin(RELAY_5_GPIO_Port, RELAY_5_Pin, GPIO_PIN_RESET);
 					break;
+#endif
 
 				default:
 					break;
