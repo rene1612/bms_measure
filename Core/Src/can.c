@@ -56,9 +56,9 @@ void MX_CAN_Init(void)
   hcan.Init.Prescaler = main_regs.dev_config.app_can_bitrate;
   //hcan.Init.Prescaler = 12;
   hcan.Init.Mode = CAN_MODE_NORMAL;
-  hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan.Init.TimeSeg1 = CAN_BS1_2TQ;
-  hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan.Init.SyncJumpWidth = CAN_SJW_2TQ;
+  hcan.Init.TimeSeg1 = CAN_BS1_5TQ;
+  hcan.Init.TimeSeg2 = CAN_BS2_3TQ;
   hcan.Init.TimeTriggeredMode = DISABLE;
   hcan.Init.AutoBusOff = DISABLE;
   hcan.Init.AutoWakeUp = DISABLE;
@@ -240,8 +240,10 @@ uint8_t	process_CAN(void)
 					Error_Handler ();
 				}
 			}
-			else
+			else {
 				return can_task_scheduler;
+			}
+
 		}
 
 		if(adcConfM->ch++ >= NUMB_ADC_CH )
@@ -446,4 +448,19 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     	main_task_scheduler |= PROCESS_CAN;
 	}
 }
+
+
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
+{
+	uint8_t err_code;
+
+	err_code = HAL_CAN_GetError(hcan);
+
+	if (err_code == 0x04) {
+		err_code += 0x40;
+	}
+
+	return;
+}
+
 /* USER CODE END 1 */

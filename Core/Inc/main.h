@@ -95,11 +95,11 @@ typedef enum
 }_MEASURE_TYPE;
 
 
-typedef enum
-{
-	ACK = 0x11,
-	NACK= 0x13
-}_REPLAY_TYPE;
+//typedef enum
+//{
+//	ACK = 0x11,
+//	NACK= 0x13
+//}_REPLAY_TYPE;
 
 
 typedef struct
@@ -119,6 +119,7 @@ typedef struct
 }_ADC_CH_CALIBRATION;
 
 
+/*
 typedef enum
 {
 	NO_CMD=0,
@@ -143,6 +144,7 @@ typedef enum
 	\
 	END_CMD
 }_CAN_CMD;
+*/
 
 
 typedef enum
