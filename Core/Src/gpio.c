@@ -51,34 +51,64 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, MCU_SYNC_RESET_Pin|SPI1_CS_Pin|RELAY_3_Pin|RELAY_4_Pin
-                          |RELAY_5_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LED_GREEN_Pin|LED_RED_Pin|RELAY_1_Pin|RELAY_2_Pin, GPIO_PIN_RESET);
-
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = MCU_DRDY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(MCU_DRDY_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PAPin PAPin PAPin PAPin
-                           PAPin */
-  GPIO_InitStruct.Pin = MCU_SYNC_RESET_Pin|SPI1_CS_Pin|RELAY_3_Pin|RELAY_4_Pin
-                          |RELAY_5_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PBPin PBPin PBPin PBPin */
-  GPIO_InitStruct.Pin = LED_GREEN_Pin|LED_RED_Pin|RELAY_1_Pin|RELAY_2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  /* USER CODE BEGIN 2 */
+  #if __BOARD_VERSION__ == 0x0100
+	  /*Configure GPIO pin Output Level */
+	  HAL_GPIO_WritePin(GPIOA, MCU_SYNC_RESET_Pin|SPI1_CS_Pin|RELAY_4_Pin |RELAY_5_Pin, GPIO_PIN_RESET);
+
+	  /*Configure GPIO pin Output Level */
+	  HAL_GPIO_WritePin(GPIOB, LED_GREEN_Pin|LED_RED_Pin|RELAY_1_Pin|RELAY_2_Pin|RELAY_3_Pin, GPIO_PIN_RESET);
+
+	  /*Configure GPIO pins : PAPin PAPin PAPin PAPin
+							   PAPin */
+	  GPIO_InitStruct.Pin = MCU_SYNC_RESET_Pin|SPI1_CS_Pin|RELAY_4_Pin |RELAY_5_Pin;
+	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	  /*Configure GPIO pins : PBPin PBPin PBPin PBPin */
+	  GPIO_InitStruct.Pin = LED_GREEN_Pin|LED_RED_Pin|RELAY_1_Pin|RELAY_2_Pin|RELAY_3_Pin;
+	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  #elif __BOARD_VERSION__ >= 0x0200
+	  /*Configure GPIO pin Output Level */
+	  HAL_GPIO_WritePin(GPIOA, MCU_SYNC_RESET_Pin|SPI1_CS_Pin|RELAY_3_Pin|RELAY_4_Pin
+							  |RELAY_5_Pin, GPIO_PIN_RESET);
+
+	  /*Configure GPIO pin Output Level */
+	  HAL_GPIO_WritePin(GPIOB, LED_GREEN_Pin|LED_RED_Pin|RELAY_1_Pin|RELAY_2_Pin, GPIO_PIN_RESET);
+
+	  /*Configure GPIO pins : PAPin PAPin PAPin PAPin
+							   PAPin */
+	  GPIO_InitStruct.Pin = MCU_SYNC_RESET_Pin|SPI1_CS_Pin|RELAY_3_Pin|RELAY_4_Pin
+							  |RELAY_5_Pin;
+	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	  /*Configure GPIO pins : PBPin PBPin PBPin PBPin */
+	  GPIO_InitStruct.Pin = LED_GREEN_Pin|LED_RED_Pin|RELAY_1_Pin|RELAY_2_Pin;
+	  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	  GPIO_InitStruct.Pull = GPIO_NOPULL;
+	  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  #endif
+
+  /* USER CODE END 2 */
+
 
   /*Configure GPIO pin : PA8 */
   GPIO_InitStruct.Pin = GPIO_PIN_8;
@@ -88,6 +118,3 @@ void MX_GPIO_Init(void)
 
 }
 
-/* USER CODE BEGIN 2 */
-
-/* USER CODE END 2 */
