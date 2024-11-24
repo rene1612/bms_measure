@@ -65,19 +65,21 @@ uint16_t timer_10ms;
 __attribute__((__section__(".dev_config"))) const _DEV_CONFIG_REGS dev_config_regs = {
 		__DEV_ID__,
 		__BOARD_TYPE__,
+		"BMS-MEASURE",
 		__BOARD_VERSION__,
+		__BOARD_MF_DATE__,
 		DEAULT_BL_CAN_BITRATE,
-		DEAULT_APP_CAN_BITRATE,
-		__BOARD_MF_DATE__
+		DEAULT_APP_CAN_BITRATE
 };
 #endif
 
-__attribute__((__section__(".board_info"))) const unsigned char BOARD_NAME[16] = "BMS-MEASURE-APP";
+__attribute__((__section__(".board_info"))) const unsigned char BOARD_NAME[16] = "BMS-MEASURE";
 
 __attribute__((__section__(".sw_info"))) const _SW_INFO_REGS sw_info_regs = {
+		__SW_NAME__,
 		__SW_RELEASE__,
 		__SW_RELEASE_DATE__,
-		0x0000000000000000,
+		0x1000000000000009,
 		"no tag"
 };
 

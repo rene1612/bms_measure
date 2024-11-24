@@ -449,6 +449,9 @@ uint8_t	process_CAN(void)
 
 
 
+/* HAL_CAN_RxCallback -----------------------------------------------------*/
+/* Interrupt callback to manage Can Receive                                */
+/*-------------------------------------------------------------------------*/
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
 	if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, CanRxData) != HAL_OK)
@@ -464,17 +467,52 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 }
 
 
-void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
-{
-	uint8_t err_code;
+/* HAL_CAN_ErrorCallback -----------------------------------------------------*/
+/* Interrupt callback to manage Can Errors                                    */
+/*----------------------------------------------------------------------------*/
+void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *phcan){
+	//uint32_t transmitmailbox;
+	int retry=0;
 
-	err_code = HAL_CAN_GetError(hcan);
-
-	if (err_code == 0x04) {
-		err_code += 0x40;
+	if((phcan->ErrorCode & HAL_CAN_ERROR_TX_ALST0) || (phcan->ErrorCode & HAL_CAN_ERROR_TX_TERR0)){
+		HAL_CAN_AbortTxRequest(phcan,CAN_TX_MAILBOX0);
+		retry=1;
+	}
+	if((phcan->ErrorCode & HAL_CAN_ERROR_TX_ALST1) || (phcan->ErrorCode & HAL_CAN_ERROR_TX_TERR1)){
+		HAL_CAN_AbortTxRequest(phcan,CAN_TX_MAILBOX1);
+		retry=1;
+	}
+	if((phcan->ErrorCode & HAL_CAN_ERROR_TX_ALST2) || (phcan->ErrorCode & HAL_CAN_ERROR_TX_TERR2)){
+		HAL_CAN_AbortTxRequest(phcan,CAN_TX_MAILBOX2);
+		retry=1;
 	}
 
-	return;
+	HAL_CAN_ResetError(phcan);
+
+	if(retry==1){
+		HAL_CAN_DeactivateNotification(phcan,CAN_IT_TX_MAILBOX_EMPTY);
+		HAL_CAN_ActivateNotification(phcan,CAN_IT_TX_MAILBOX_EMPTY);
+		//HAL_CAN_AddTxMessage(phcan,&(CanTxList.SendMsgBuff.header),CanTxList.SendMsgBuff.Data,&transmitmailbox);
+	}
 }
+
+/* HAL_CAN_TxCpltCallback ----------------------------------------------------*/
+/* Interrupt callback to manage Can Tx Ready                                  */
+/*----------------------------------------------------------------------------*/
+void CAN_TX_Cplt(CAN_HandleTypeDef* phcan){
+
+}
+
+
+void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef* phcan){
+	CAN_TX_Cplt(phcan);
+}
+void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef* phcan){
+	CAN_TX_Cplt(phcan);
+}
+void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef* phcan){
+	CAN_TX_Cplt(phcan);
+}
+
 
 /* USER CODE END 1 */

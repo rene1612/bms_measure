@@ -32,11 +32,11 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #ifndef __BOARD_TYPE__
-	#define __BOARD_TYPE__				((_BOARD_TYPE)BMS_MEASURE_BOARD)
+	#define __BOARD_TYPE__				(BMS_MEASURE_BOARD)
 #endif
 
 //
-#define __BRD_ID__						0x00
+#define __BRD_ID__						0x01
 
 #ifndef __DEV_ID__
 	#define __DEV_ID__					(__BOARD_TYPE__ + __BRD_ID__)
@@ -213,6 +213,8 @@ typedef enum
   */
   typedef struct
   {
+  const char 	sw_name[20];
+
  /**
   * @var	unsigned int sw_release
   * @brief	Register mit der Softwareversion
@@ -238,7 +240,7 @@ typedef enum
 
   uint64_t		sw_git_short_hash;
 
-  const char	sw_git_tag[16];
+  const char	sw_git_tag[24];
  }_SW_INFO_REGS;
 
 
@@ -342,6 +344,7 @@ typedef enum
 #define SW_RELEASE_MONTH			11
 #define SW_RELEASE_YEAR				2024
 #define __SW_RELEASE_DATE__			((SW_RELEASE_DAY<<24 ) | (SW_RELEASE_MONTH<<16) | SW_RELEASE_YEAR)
+#define __SW_NAME__	"BMS_MEASURE_APP"
 
 
  /**
