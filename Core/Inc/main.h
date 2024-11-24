@@ -205,6 +205,8 @@ typedef enum
  }_MAIN_REGS;
 
 
+ #pragma pack(push,1)
+
  /**
   * @struct	REG
   * @brief	Registersatz des Controllers.
@@ -240,8 +242,9 @@ typedef enum
 
   uint64_t		sw_git_short_hash;
 
-  const char	sw_git_tag[24];
+  const char	sw_git_tag[20];
  }_SW_INFO_REGS;
+#pragma pack(pop)
 
 
  /**
