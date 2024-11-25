@@ -101,13 +101,6 @@ typedef enum
 }_MEASURE_TYPE;
 
 
-//typedef enum
-//{
-//	ACK = 0x11,
-//	NACK= 0x13
-//}_REPLAY_TYPE;
-
-
 typedef struct
 {
 	float	min_threshold;
@@ -123,34 +116,6 @@ typedef struct
 	uint32_t	offset;
 	uint32_t	gain;
 }_ADC_CH_CALIBRATION;
-
-
-/*
-typedef enum
-{
-	NO_CMD=0,
-	SYS_READ_REG_CMD,
-	SYS_WRITE_REG_CMD,
-	SYS_RESET_CMD,
-	SYS_APP_RESET_CMD,
-	SYS_BOOT_CMD,
-	\
-	ALIVE_CMD=6,
-	\
-	REPLAY_AKC_NACK_CMD=0x11,
-	REPLAY_DATA_CMD=0x13,
-	\
-	ADC_OFFSET_CAL_CMD=0x20,
-	ADC_GAIN_CAL_CMD,
-	ADC_READ_REG_CMD,
-	ADC_WRITE_REG_CMD,
-	\
-	SET_RELAY_CMD=0x30,
-	GET_RELAY_CMD,
-	\
-	END_CMD
-}_CAN_CMD;
-*/
 
 
 typedef enum
@@ -205,46 +170,6 @@ typedef enum
  }_MAIN_REGS;
 
 
- #pragma pack(push,1)
-
- /**
-  * @struct	REG
-  * @brief	Registersatz des Controllers.
-  *
-  * @note	Der Registersatz wird im RAM und im EEProm gehalten
-  */
-  typedef struct
-  {
-  const char 	sw_name[20];
-
- /**
-  * @var	unsigned int sw_release
-  * @brief	Register mit der Softwareversion
-  * @see	__SW_RELEASE__
-  * @see	SW_REL_REG
-  * @see	config.h
-  */
-  uint16_t		sw_release;
-
- /**
-  * @var	unsigned int sw_release_date
-  * @brief	Register mit dem Datum der Softwareversion
-  * Formatierung:
-  *	- Byte 0 -> Tag
-  *	- BYTE 1 -> Monat
-  *	- BYTE 2 -> Jahr
-  *	- BYTE 3 -> Jahr
-  * @see	__SW_RELEASE_DATE__
-  * @see	SW_REL_DATE_REG
-  * @see	config.h
-  */
-  uint32_t		sw_release_date;
-
-  uint64_t		sw_git_short_hash;
-
-  const char	sw_git_tag[20];
- }_SW_INFO_REGS;
-#pragma pack(pop)
 
 
  /**
