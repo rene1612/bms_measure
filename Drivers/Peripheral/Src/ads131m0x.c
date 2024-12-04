@@ -170,7 +170,7 @@ uint8_t	process_ADS131M08(void)
 	if (ads131m08_task_scheduler & ADS131M08_SEND_AGGR_DATA)
 	{
 		ads131m08_task_scheduler &= ~ADS131M08_SEND_AGGR_DATA;
-		can_task_scheduler |= PROCESS_CAN_SEND_NEW_ADC_DATA;
+		can_task_scheduler |= PROCESS_CAN_SEND_AUTO_ADC_DATA;
     	main_task_scheduler |= PROCESS_CAN;
 	}
 
@@ -185,9 +185,7 @@ uint8_t	process_ADS131M08(void)
 				ads131m08_task_scheduler &= ~ADS131M08_PARSE_NEW_DATA;
 		    	adcConfM->Lock = DATA_UNLOCKED;
 		    }
-
 		}
-
 //	    if (adcConfM->Lock == DATA_UNLOCKED)
 //	    {
 //			ADS131M08_receive_data();
@@ -1213,27 +1211,41 @@ uint32_t ADS131M08_convert_adc_data(const uint8_t* dataBuf)
 void ADS131M08_parse_adc_data()
 {
     uint8_t index;
+    uint32_t abs_value;
 
     adcConfM->response = combineBytes(adcConfM->rxBuf[0], adcConfM->rxBuf[1]);
 
 	for(adcConfM->ch = ADC_CH1, index = 1; adcConfM->ch < NUMB_ADC_CH; adcConfM->ch++, index++)
 	{
-		if ( adcConfM->chData[adcConfM->ch].average_counter < CHANNEL_OVERSAMPLING )
+		adcConfM->chData[adcConfM->ch].r = ADS131M08_convert_adc_data(&adcConfM->rxBuf[index * M08_WORD_LENGTH]);
+
+		if ( adcConfM->chData[adcConfM->ch].r & 0x800000)
 		{
-			adcConfM->chData[adcConfM->ch].r = ADS131M08_convert_adc_data(&adcConfM->rxBuf[index * M08_WORD_LENGTH]);
-
-			if ( adcConfM->chData[adcConfM->ch].r & 0x800000)
-			{
-				adcConfM->chData[adcConfM->ch].average -= ((0xFFFFFF - adcConfM->chData[adcConfM->ch].r) +1);
-			}
-			else
-			{
-				adcConfM->chData[adcConfM->ch].average += adcConfM->chData[adcConfM->ch].r;
-			}
-
-			adcConfM->chData[adcConfM->ch].average_counter ++;
+			adcConfM->chData[adcConfM->ch].average -= ((0xFFFFFF - adcConfM->chData[adcConfM->ch].r) +1);
+			abs_value = ((0xFFFFFF - adcConfM->chData[adcConfM->ch].r) +1);
 		}
 		else
+		{
+			adcConfM->chData[adcConfM->ch].average += adcConfM->chData[adcConfM->ch].r;
+			abs_value = adcConfM->chData[adcConfM->ch].r;
+		}
+
+		//check for current fast trip???
+		if (main_regs.cfg_regs.current_fast_trip_mask & (1<<adcConfM->ch)) {
+
+			if (main_regs.cfg_regs.current_fast_trip_thresholds[adcConfM->ch].enable_mask & ENABLE_MAX_THRESHOLD) {
+
+				if (abs_value >= main_regs.cfg_regs.current_fast_trip_thresholds[adcConfM->ch].max) {
+
+					//do the trip
+					TripCFTRelay(main_regs.cfg_regs.current_fast_trip_thresholds[adcConfM->ch].cft_relays);
+				}
+			}
+		}
+
+		adcConfM->chData[adcConfM->ch].average_counter ++;
+
+		if ( adcConfM->chData[adcConfM->ch].average_counter >= CHANNEL_OVERSAMPLING )
 		{
 			adcConfM->chData[adcConfM->ch].average /= CHANNEL_OVERSAMPLING;
 			adcConfM->chData[adcConfM->ch].average_counter = 0;
@@ -1276,7 +1288,7 @@ float ADS131M08_convert_to_mVolt(int32_t reg)
 
 float ADS131M08_convert_to_mAmp(int32_t reg)
 {
-    const float unitFS = 47000.0f / 8388607.0f; // unit: mV (if unit is V, calculated value is out of 'float' range)
+    const float unitFS = 47000.0f / 8388607.0f; // unit: mA (if unit is V, calculated value is out of 'float' range)
 
     // convert register to mVolt
     return (float)((float)reg * unitFS);

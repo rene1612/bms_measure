@@ -21,6 +21,7 @@
 #include "can.h"
 
 /* USER CODE BEGIN 0 */
+#include <string.h>
 
 #include "ads131m0x.h"
 #include "main.h"
@@ -28,7 +29,7 @@
 extern const _DEV_CONFIG_REGS* pDevConfig;
 
 //ADS131M08_Can_Msg	ads_can_msg={};
-CAN_TxHeaderTypeDef	TxHeader, ReplayHeader;
+CAN_TxHeaderTypeDef	TxHeader, ReplayHeader, AlertHeader, BroadcastHeader;
 uint8_t				CanTxData[8];
 uint32_t            TxMailbox;
 uint8_t				can_task_scheduler;
@@ -36,6 +37,9 @@ CAN_RxHeaderTypeDef RxHeader;
 uint8_t				can_replay_msg;
 uint8_t             CanRxData[8];
 //CAN_FilterTypeDef 	canfilterconfig;
+uint8_t				channels_2_send, current_channel_2_send;
+//uint8_t				current_blk_data_2_send;
+_BMSM_ADC_DATA1		bmsm_adc_data[CHANNEL_COUNT];
 
 /* USER CODE END 0 */
 
@@ -78,6 +82,7 @@ void MX_CAN_Init(void)
   main_regs.can_tx_heartbeat_id = (main_regs.dev_config.dev_id<<4) + CANTX_HA;
   main_regs.can_filterMask = RXFILTERMASK;
   main_regs.can_filterID = (main_regs.dev_config.dev_id<<4); // Only accept bootloader CAN message ID
+  main_regs.can_rx_brdc_cmd_id = (pDevConfig->can_broadcast_id<<4) + 0xF;
 
   TxHeader.DLC = 5;
   TxHeader.IDE = CAN_ID_STD;
@@ -89,6 +94,15 @@ void MX_CAN_Init(void)
   ReplayHeader.StdId = main_regs.can_tx_data_id;
   ReplayHeader.RTR = CAN_RTR_DATA;
 
+  AlertHeader.DLC = 2;
+  AlertHeader.IDE = CAN_ID_STD;
+  AlertHeader.StdId = main_regs.can_tx_data_id;
+  AlertHeader.RTR = CAN_RTR_DATA;
+
+  BroadcastHeader.DLC = 1;
+  BroadcastHeader.IDE = CAN_ID_STD;
+  BroadcastHeader.StdId = (pDevConfig->can_broadcast_id<<4)+0xF;
+  BroadcastHeader.RTR = CAN_RTR_DATA;
 
 	/* config_can_filter ---------------------------------------------------------*/
 	/* Setup Can-Filter                                                           */
@@ -111,36 +125,9 @@ void MX_CAN_Init(void)
 
   if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK)
   {
-	Error_Handler();
+	  Error_Handler();
   }
 
-  /* USER CODE END CAN_Init 2 */
-
-//
-//  can_task_scheduler = PROCESS_NO_TASK;
-//
-//  TxHeader.DLC = 5;
-//  TxHeader.IDE = CAN_ID_STD;
-//  TxHeader.StdId = BMS_MEASURE_CAN_ID;
-//  TxHeader.RTR = CAN_RTR_DATA;
-//
-//  ReplayHeader.DLC = 2;
-//  ReplayHeader.IDE = CAN_ID_STD;
-//  ReplayHeader.StdId = BMS_MEASURE_CAN_ID;
-//  ReplayHeader.RTR = CAN_RTR_DATA;
-//
-//  canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
-//  canfilterconfig.FilterBank = 13;  // which filter bank to use from the assigned ones
-//  canfilterconfig.FilterFIFOAssignment = CAN_FILTER_FIFO0;
-//  canfilterconfig.FilterIdHigh = 0x446<<5;
-//  canfilterconfig.FilterIdLow = 0;
-//  canfilterconfig.FilterMaskIdHigh = 0x446<<5;
-//  canfilterconfig.FilterMaskIdLow = 0x0000;
-//  canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
-//  canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
-//  canfilterconfig.SlaveStartFilterBank = 14;  // how many filters to assign to the CAN1 (master can)
-//
-//  HAL_CAN_ConfigFilter(&hcan, &canfilterconfig);
   /* USER CODE END CAN_Init 2 */
 
 }
@@ -214,46 +201,123 @@ void HAL_CAN_MspDeInit(CAN_HandleTypeDef* canHandle)
 /* USER CODE BEGIN 1 */
 
 
+uint8_t prepare_BMSM_CanData(uint8_t bmsm_get_cmd, uint8_t channel)
+{
+	uint8_t ch_counter,blk_counter;
+	//uint8_t ressult=0;
+
+	assert(channel<CHANNEL_COUNT);
+
+	if (adcConfM->Lock == DATA_LOCKED)
+		return 0;
+
+	adcConfM->Lock = DATA_LOCKED;
+
+	blk_counter=0;
+
+	switch (bmsm_get_cmd) {
+
+		case BMSM_GET_ALL_DATA_CMD:
+
+			for (ch_counter=0;ch_counter<CHANNEL_COUNT;ch_counter++)
+			{
+				if(main_regs.cfg_regs.adc_enable_mask & (0x01<<ch_counter))
+				{
+					bmsm_adc_data[blk_counter].bms_data_type = BMSM_GET_ALL_DATA_CMD;
+					bmsm_adc_data[blk_counter].flags_ch_number = (ch_counter + (adcConfM->chData[ch_counter].measure_type<<4));
+					bmsm_adc_data[blk_counter].value = adcConfM->chData[ch_counter].v;
+					blk_counter++;
+				}
+			}
+			break;
+
+		case BMSM_GET_SINGLE_DATA_CMD:
+
+			if(main_regs.cfg_regs.adc_enable_mask & (0x01<<channel))
+			{
+				bmsm_adc_data[blk_counter].bms_data_type = BMSM_GET_SINGLE_DATA_CMD;
+				bmsm_adc_data[blk_counter].flags_ch_number = (channel + (adcConfM->chData[channel].measure_type<<4));
+				bmsm_adc_data[blk_counter].value = adcConfM->chData[channel].v;
+				blk_counter++;
+			}
+			break;
+
+		default:
+			break;
+	}
+
+	adcConfM->Lock = DATA_UNLOCKED;
+
+	channels_2_send=blk_counter;
+
+	return blk_counter;
+}
+
+
 uint8_t	process_CAN(void)
 {
 	//_ADS131M08_ch ch;
-
 	int32_t offset;
 	uint32_t gain;
-	uint8_t ch, sys_reg;
-	uint16_t reg;
+	uint8_t ch, len;
+	uint16_t reg, sys_reg;
 
-	if (can_task_scheduler & PROCESS_CAN_SEND_NEW_ADC_DATA)
+	if (can_task_scheduler & PROCESS_CAN_SEND_AUTO_ADC_DATA)
 	{
-		if (adcConfM->Lock == DATA_UNLOCKED )
-			adcConfM->Lock = DATA_LOCKED;
-
-		if(main_regs.cfg_regs.adc_enable_mask & (0x01<<adcConfM->ch))
+		if(main_regs.ctrl & (1<<REG_CTRL_ENABLE_ADC_AUTO_SEND))
 		{
-			if (!HAL_CAN_IsTxMessagePending(&hcan, TxMailbox))
-			{
-				CanTxData[0] = (adcConfM->chData[adcConfM->ch].measure_type<<4) | adcConfM->ch;
-				*((float*)(CanTxData+1)) = adcConfM->chData[adcConfM->ch].v;
+			if (adcConfM->Lock == DATA_UNLOCKED )
+				adcConfM->Lock = DATA_LOCKED;
 
-				if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, CanTxData, &TxMailbox) != HAL_OK)
+			if(main_regs.cfg_regs.adc_enable_mask & (0x01<<adcConfM->ch))
+			{
+				if (!HAL_CAN_IsTxMessagePending(&hcan, TxMailbox))
 				{
-					Error_Handler ();
+					CanTxData[0] = (adcConfM->chData[adcConfM->ch].measure_type<<4) | adcConfM->ch;
+					*((float*)(CanTxData+1)) = adcConfM->chData[adcConfM->ch].v;
+
+					if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, CanTxData, &TxMailbox) != HAL_OK)
+					{
+						Error_Handler ();
+					}else {
+						set_signal_led(CAN_LED, LED_100MS_FLASH);
+					}
+				}
+				else {
+					return can_task_scheduler;
 				}
 			}
-			else {
-				return can_task_scheduler;
+
+			if(adcConfM->ch++ >= NUMB_ADC_CH )
+			{
+				adcConfM->Lock = DATA_UNLOCKED;
+				can_task_scheduler &= ~PROCESS_CAN_SEND_AUTO_ADC_DATA;
 			}
-
+		}else {
+			can_task_scheduler &= ~PROCESS_CAN_SEND_AUTO_ADC_DATA;
 		}
+	}
 
-		if(adcConfM->ch++ >= NUMB_ADC_CH )
-		{
-			adcConfM->Lock = DATA_UNLOCKED;
-			can_task_scheduler &= ~PROCESS_CAN_SEND_NEW_ADC_DATA;
+
+	if (can_task_scheduler & PROCESS_CAN_SEND_ADC_DATA)
+	{
+		if (!HAL_CAN_IsTxMessagePending(&hcan, TxMailbox)) {
+			TxHeader.DLC=sizeof(_BMSM_ADC_DATA1);
+			memcpy(CanTxData, (uint8_t*)&bmsm_adc_data[current_channel_2_send],sizeof(_BMSM_ADC_DATA1));
+
+			if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, CanTxData, &TxMailbox) != HAL_OK) {
+				Error_Handler ();
+			}
+			else {
+				if (++current_channel_2_send >= channels_2_send) {
+					can_task_scheduler &= ~PROCESS_CAN_SEND_ADC_DATA;
+				}
+				set_signal_led(CAN_LED, LED_100MS_FLASH);
+			}
 		}
-
-		//can_task_scheduler &= ~PROCESS_CAN_SEND_NEW_ADC_DATA;
-		//return can_task_scheduler;
+		else {
+			return can_task_scheduler;
+		}
 	}
 
 
@@ -270,54 +334,77 @@ uint8_t	process_CAN(void)
 	}
 
 
+	if (can_task_scheduler & PROCESS_CAN_ON_BRDC_MSG)
+	{
+		if (CanRxData[0] <= ALIVE_CMD) {
+			can_task_scheduler |= PROCESS_CAN_ON_MSG;
+		}
+		can_task_scheduler &= ~PROCESS_CAN_ON_BRDC_MSG;
+	}
+
+
 	if (can_task_scheduler & PROCESS_CAN_ON_MSG)
 	{
 		switch (CanRxData[0])
 		{
 		case SET_RELAY_CMD:
-			switch (CanRxData[1])
-			{
-				case 1:
-					if (CanRxData[2])
+			//system-trip-relay be carefull
+			if (CanRxData[1] & SYSTEM_TRIP_RELAY2)	{
+				if (CanRxData[2] & SYSTEM_TRIP_RELAY2) {
+					if(main_regs.ctrl & (1<<REG_CTRL_ENABLE_TRIP))
 						HAL_GPIO_WritePin(RELAY_1_GPIO_Port, RELAY_1_Pin, GPIO_PIN_SET);
-					else
-						HAL_GPIO_WritePin(RELAY_1_GPIO_Port, RELAY_1_Pin, GPIO_PIN_RESET);
-					break;
+					}
+				else {
+					HAL_GPIO_WritePin(RELAY_1_GPIO_Port, RELAY_1_Pin, GPIO_PIN_RESET);
+				}
+			}
 
-				case 2:
-					if (CanRxData[2])
-						HAL_GPIO_WritePin(RELAY_2_GPIO_Port, RELAY_2_Pin, GPIO_PIN_SET);
-					else
-						HAL_GPIO_WritePin(RELAY_2_GPIO_Port, RELAY_2_Pin, GPIO_PIN_RESET);
-					break;
+			//CFT_RELAY1
+			if (CanRxData[1] & CFT_RELAY1)	{
+				if (CanRxData[2] & CFT_RELAY1) {
+					HAL_GPIO_WritePin(RELAY_2_GPIO_Port, RELAY_2_Pin, GPIO_PIN_SET);
+				}
+				else {
+					HAL_GPIO_WritePin(RELAY_2_GPIO_Port, RELAY_2_Pin, GPIO_PIN_RESET);
+				}
+			}
 
-				case 3:
-					if (CanRxData[2])
-						HAL_GPIO_WritePin(RELAY_3_GPIO_Port, RELAY_3_Pin, GPIO_PIN_SET);
-					else
-						HAL_GPIO_WritePin(RELAY_3_GPIO_Port, RELAY_3_Pin, GPIO_PIN_RESET);
-					break;
+			//CFT_RELAY2
+			if (CanRxData[1] & CFT_RELAY2)	{
+				if (CanRxData[2] & CFT_RELAY2) {
+					HAL_GPIO_WritePin(RELAY_3_GPIO_Port, RELAY_3_Pin, GPIO_PIN_SET);
+				}
+				else {
+					HAL_GPIO_WritePin(RELAY_3_GPIO_Port, RELAY_3_Pin, GPIO_PIN_RESET);
+				}
+			}
 
 #if __BOARD_VERSION__ >= 0x0200
+			//CFT_RELAY3
+			if (CanRxData[1] & CFT_RELAY3)	{
+				if (CanRxData[2] & CFT_RELAY3) {
+					HAL_GPIO_WritePin(RELAY_4_GPIO_Port, RELAY_4_Pin, GPIO_PIN_SET);
+				}
+				else {
+					HAL_GPIO_WritePin(RELAY_4_GPIO_Port, RELAY_4_Pin, GPIO_PIN_RESET);
+				}
+			}
 
-				case 4:
-					if (CanRxData[2])
-						HAL_GPIO_WritePin(RELAY_4_GPIO_Port, RELAY_4_Pin, GPIO_PIN_SET);
-					else
-						HAL_GPIO_WritePin(RELAY_4_GPIO_Port, RELAY_4_Pin, GPIO_PIN_RESET);
-					break;
-
-				case 5:
-					if (CanRxData[2])
-						HAL_GPIO_WritePin(RELAY_5_GPIO_Port, RELAY_5_Pin, GPIO_PIN_SET);
-					else
-						HAL_GPIO_WritePin(RELAY_5_GPIO_Port, RELAY_5_Pin, GPIO_PIN_RESET);
-					break;
+			//CFT_RELAY4
+			if (CanRxData[1] & CFT_RELAY4)	{
+				if (CanRxData[2] & CFT_RELAY4) {
+					HAL_GPIO_WritePin(RELAY_5_GPIO_Port, RELAY_5_Pin, GPIO_PIN_SET);
+				}
+				else {
+					HAL_GPIO_WritePin(RELAY_5_GPIO_Port, RELAY_5_Pin, GPIO_PIN_RESET);
+				}
+			}
 #endif
 
-				default:
-					break;
-			}
+			CanTxData[1] = ACK;
+			CanTxData[0] = REPLAY_AKC_NACK_CMD;
+			ReplayHeader.DLC = 2;
+			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
 			break;
 
 		case ALIVE_CMD:
@@ -330,7 +417,14 @@ uint8_t	process_CAN(void)
 			offset = *((int32_t *)(CanRxData+2));
 			if (ADS131M08_offset_calibration(ch, offset)==HAL_OK) {
 				main_regs.cfg_regs.adc_calibration[ch].offset = offset;
+				CanTxData[1] = ACK;
+			}else {
+				CanTxData[1] = NACK;
 			}
+
+			CanTxData[0] = REPLAY_AKC_NACK_CMD;
+			ReplayHeader.DLC = 2;
+			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
 			break;
 
 		case ADC_GAIN_CAL_CMD:
@@ -339,7 +433,14 @@ uint8_t	process_CAN(void)
 			gain = *((uint32_t *)(CanRxData+2));
 			if (ADS131M08_gain_calibration(ch, gain)) {
 				main_regs.cfg_regs.adc_calibration[ch].gain = gain;
+				CanTxData[1] = ACK;
+			}else {
+				CanTxData[1] = NACK;
 			}
+
+			CanTxData[0] = REPLAY_AKC_NACK_CMD;
+			ReplayHeader.DLC = 2;
+			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
 			break;
 
 		case ADC_READ_REG_CMD:
@@ -381,24 +482,27 @@ uint8_t	process_CAN(void)
 		case SYS_BOOT_CMD:
 			//printf("SYS_BOOT\n");
 			//leave a message in a bottle for the bootloader,
-			//so the btld will not start app again and stay in btld-mode
+			//so the bootloader will not start app again and stay in bootloader-mode
 			*(uint32_t *)_MAGIC_RAM_ADDRESS_ = _MAGIC_RAM_DWORD_;
 			JumpToBtld();
 			break;
 
 		case SYS_READ_REG_CMD:
 			//printf("ADC_READ_REG_CMD\n");
-			sys_reg = CanRxData[1];
+			sys_reg = (CanRxData[1]<<7)+CanRxData[2];
+			len=CanRxData[3];
 
-			if (sys_reg < sizeof(main_regs))
-			{
+			if(!len || len >7)
+				len=1;
+
+			if (sys_reg < sizeof(main_regs)) {
 				CanTxData[0] = REPLAY_DATA_CMD;
-				CanTxData[1] = sys_reg;
-				CanTxData[2] = *(((uint8_t *)&main_regs)+sys_reg);
-				ReplayHeader.DLC = 3;
+				//CanTxData[1] = sys_reg;
+				memcpy((uint8_t *)&CanTxData[1],(((uint8_t *)&main_regs)+sys_reg),len);
+				//CanTxData[2] = *(((uint8_t *)&main_regs)+sys_reg);
+				ReplayHeader.DLC = len+1;
 			}
-			else
-			{
+			else {
 				CanTxData[0] = REPLAY_AKC_NACK_CMD;
 				CanTxData[1] = NACK;
 				ReplayHeader.DLC = 2;
@@ -424,6 +528,27 @@ uint8_t	process_CAN(void)
 			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
 			break;
 
+		case BMSM_GET_ALL_DATA_CMD:
+			if ((channels_2_send=prepare_BMSM_CanData(BMSM_GET_ALL_DATA_CMD, 0))) {
+				current_channel_2_send = 0;
+				can_task_scheduler |= PROCESS_CAN_SEND_ADC_DATA;
+			}
+			else {
+				return can_task_scheduler;
+			}
+			break;
+
+		case BMSM_GET_SINGLE_DATA_CMD:
+			ch = CanRxData[1];
+			if ((channels_2_send=prepare_BMSM_CanData(BMSM_GET_SINGLE_DATA_CMD, ch))) {
+				current_channel_2_send = 0;
+				can_task_scheduler |= PROCESS_CAN_SEND_ADC_DATA;
+			}
+			else {
+				return can_task_scheduler;
+			}
+			break;
+
 		default:
 			break;
 		}
@@ -440,6 +565,7 @@ uint8_t	process_CAN(void)
 				Error_Handler ();
 			}
 
+			set_signal_led(CAN_LED, LED_100MS_FLASH);
 			can_task_scheduler &= ~PROCESS_CAN_SEND_REPLAY;
 		}
 	}
@@ -454,14 +580,15 @@ uint8_t	process_CAN(void)
 /*-------------------------------------------------------------------------*/
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-	if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, CanRxData) != HAL_OK)
-	{
+	if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, CanRxData) != HAL_OK){
 		Error_Handler();
 	}
 
-	if ((RxHeader.StdId == main_regs.can_rx_cmd_id))
-	{
+	if ((RxHeader.StdId == main_regs.can_rx_cmd_id)){
 		can_task_scheduler |= PROCESS_CAN_ON_MSG;
+    	main_task_scheduler |= PROCESS_CAN;
+	}else if (RxHeader.StdId == main_regs.can_rx_brdc_cmd_id) {
+		can_task_scheduler |= PROCESS_CAN_ON_BRDC_MSG;
     	main_task_scheduler |= PROCESS_CAN;
 	}
 }
@@ -512,6 +639,52 @@ void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef* phcan){
 }
 void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef* phcan){
 	CAN_TX_Cplt(phcan);
+}
+
+/* send_broadcast_msg ---------------------------------------------------------*/
+/*                                                                            */
+/*---------------------------------------------------------------------------*/
+void can_send_brdc_msg(uint8_t* p_msg, uint8_t len){
+
+	assert(len<8);
+	//CanTxData[0] = SYS_ALLERT_MSG;
+	memcpy(CanTxData, p_msg, len);
+	AlertHeader.DLC=len;
+
+	HAL_CAN_AddTxMessage(&hcan, &BroadcastHeader, CanTxData, &TxMailbox);
+
+	set_signal_led(CAN_LED, LED_100MS_FLASH);
+}
+
+
+/* send_allert_msg ---------------------------------------------------------*/
+/*                                                                           */
+/*----------------------------------------------------------------------------*/
+void can_send_alert_msg(uint8_t* p_allert_msg, uint8_t len){
+
+	assert(len<7);
+	CanTxData[0] = SYS_ALERT_MSG;
+	memcpy(CanTxData+1, p_allert_msg, len);
+	AlertHeader.DLC=len+1;
+
+	HAL_CAN_AddTxMessage(&hcan, &AlertHeader, CanTxData, &TxMailbox);
+
+	set_signal_led(CAN_LED, LED_100MS_FLASH);
+}
+
+/* send_allert_msg ---------------------------------------------------------*/
+/*                                                                           */
+/*----------------------------------------------------------------------------*/
+void can_send_warn_msg(uint8_t* p_warn_msg, uint8_t len){
+
+	assert(len<7);
+	CanTxData[0] = SYS_WARN_MSG;
+	memcpy(CanTxData+1, p_warn_msg, len);
+	AlertHeader.DLC=len+1;
+
+	HAL_CAN_AddTxMessage(&hcan, &AlertHeader, CanTxData, &TxMailbox);
+
+	set_signal_led(CAN_LED, LED_100MS_FLASH);
 }
 
 

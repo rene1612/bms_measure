@@ -48,16 +48,23 @@ extern CAN_HandleTypeDef hcan;
 extern uint8_t				can_task_scheduler;
 
 
-#define PROCESS_CAN_SEND_NEW_ADC_DATA 		0x01
+#define PROCESS_CAN_SEND_AUTO_ADC_DATA 		0x01
 #define PROCESS_CAN_ON_MSG					0x02
 #define PROCESS_CAN_SEND_REPLAY				0x04
 #define PROCESS_CAN_SEND_NEW_ALIVE_DATA		0x08
+#define PROCESS_CAN_SEND_ADC_DATA			0x10
+#define PROCESS_CAN_ON_BRDC_MSG				0x80
+
 
 /* USER CODE END Private defines */
 
 void MX_CAN_Init(void);
 
 /* USER CODE BEGIN Prototypes */
+void can_send_brdc_msg(uint8_t* p_msg, uint8_t len);
+void can_send_alert_msg(uint8_t* p_alert_msg, uint8_t len);
+void can_send_warn_msg(uint8_t* p_warn_msg, uint8_t len);
+
 uint8_t		process_CAN(void);
 /* USER CODE END Prototypes */
 
