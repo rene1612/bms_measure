@@ -188,16 +188,16 @@ __attribute__((__section__(".app_config"))) const _BMS_MEASURE_CONFIG_REGS app_c
 #endif
 	},
 	//allert_mask mask
-	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5) | (0x00<<ADC_CH6)),
+	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x00<<ADC_CH5) | (0x00<<ADC_CH6)),
 
 	//warn_mask mask
-	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5) | (0x00<<ADC_CH6)),
+	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x00<<ADC_CH5) | (0x00<<ADC_CH6)),
 
 	//current_fast_trip_mask mask
 	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x00<<ADC_CH4) | (0x00<<ADC_CH5) | (0x00<<ADC_CH6)),
 
 	//crit_allert_mask mask
-	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5) | (0x00<<ADC_CH6)),
+	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x00<<ADC_CH5) | (0x00<<ADC_CH6)),
 
 	//enable mask
 	((0x01<<ADC_CH1) | (0x01<<ADC_CH2) | (0x01<<ADC_CH3) | (0x01<<ADC_CH4) | (0x01<<ADC_CH5) | (0x00<<ADC_CH6))
@@ -683,8 +683,6 @@ void AlertHandler(void)
 //*****************************************************************************
 void DoAlert(uint8_t* p_msg, uint8_t len)
 {
-	//send Something?
-	can_send_alert_msg(p_msg, len);
 
 	if (main_regs.ctrl & (1<<REG_CTRL_CRIT_ALERT))
 	{
@@ -693,6 +691,10 @@ void DoAlert(uint8_t* p_msg, uint8_t len)
 
 		AlertHandler();
 	}
+
+	//send Something?
+	can_send_alert_msg(p_msg, len);
+
 
 	main_regs.sys_err=(_SYS_ERR_CODES)p_msg[0];
 	main_regs.sys_state=SYS_ERROR;

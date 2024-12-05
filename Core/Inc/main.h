@@ -157,9 +157,9 @@ typedef struct
 
 
 #ifdef __DEBUG__
- #define DEFAULT_CFT_CURRENT		2
+ #define DEFAULT_CFT_CURRENT		1.0
 #else
- #define DEFAULT_CFT_CURRENT		32
+ #define DEFAULT_CFT_CURRENT		32.0
 #endif
 
 #define SYSTEM_TRIP_RELAY2		0x01
