@@ -85,7 +85,7 @@ __attribute__((__section__(".dev_config"))) const _DEV_CONFIG_REGS dev_config_re
 #endif
 
 
-__attribute__((__section__(".board_info"))) const unsigned char BOARD_NAME[20] = __BOARD_NAME__;
+__attribute__((__section__(".board_info"))) _BOARD_INFO_STRUCT board_name = {__BOARD_NAME__};
 
 __attribute__((__section__(".sw_info"))) const _SW_INFO_REGS sw_info_regs = {
 		__SW_NAME__,
@@ -352,6 +352,12 @@ int main(void)
 
 	//copy dev-config from flash to ram (we will use it from ram)
 	memcpy(&main_regs.dev_config, pDevConfig, sizeof(_DEV_CONFIG_REGS));
+
+	//copy sofware-info from flash to ram (we will use it from ram)
+	memcpy(&main_regs.sw_info, &sw_info_regs, sizeof(_SW_INFO_REGS));
+
+	//copy board-name from flash to ram (we will use it from ram)
+	memcpy(&main_regs.board_info, &board_name, sizeof(_BOARD_INFO_STRUCT));
 
 /* USER CODE END 1 */
 

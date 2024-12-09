@@ -26,7 +26,7 @@
 #include "ads131m0x.h"
 #include "main.h"
 
-extern const _DEV_CONFIG_REGS* pDevConfig;
+//extern const _DEV_CONFIG_REGS* pDevConfig;
 
 //ADS131M08_Can_Msg	ads_can_msg={};
 CAN_TxHeaderTypeDef	TxHeader, ReplayHeader, AlertHeader, BroadcastHeader;
@@ -82,7 +82,7 @@ void MX_CAN_Init(void)
   main_regs.can_tx_heartbeat_id = (main_regs.dev_config.dev_id<<4) + CANTX_HA;
   main_regs.can_filterMask = RXFILTERMASK;
   main_regs.can_filterID = (main_regs.dev_config.dev_id<<4); // Only accept bootloader CAN message ID
-  main_regs.can_rx_brdc_cmd_id = (pDevConfig->can_broadcast_id<<4) + 0xF;
+  main_regs.can_rx_brdc_cmd_id = (main_regs.dev_config.can_broadcast_id<<4) + 0xF;
 
   TxHeader.DLC = 5;
   TxHeader.IDE = CAN_ID_STD;
@@ -101,7 +101,7 @@ void MX_CAN_Init(void)
 
   BroadcastHeader.DLC = 1;
   BroadcastHeader.IDE = CAN_ID_STD;
-  BroadcastHeader.StdId = (pDevConfig->can_broadcast_id<<4)+0xF;
+  BroadcastHeader.StdId = (main_regs.dev_config.can_broadcast_id<<4)+0xF;
   BroadcastHeader.RTR = CAN_RTR_DATA;
 
 	/* config_can_filter ---------------------------------------------------------*/
@@ -260,7 +260,8 @@ uint8_t	process_CAN(void)
 	int32_t offset;
 	uint32_t gain;
 	uint8_t ch, len;
-	uint16_t reg, sys_reg;
+	uint16_t reg, sys_reg, max_sys_reg_size;
+	uint8_t* p_sys_reg_offset;
 
 	if (can_task_scheduler & PROCESS_CAN_SEND_AUTO_ADC_DATA)
 	{
@@ -489,16 +490,43 @@ uint8_t	process_CAN(void)
 
 		case SYS_READ_REG_CMD:
 			//printf("ADC_READ_REG_CMD\n");
-			sys_reg = (CanRxData[1]<<7)+CanRxData[2];
-			len=CanRxData[3];
+			sys_reg = (CanRxData[2]<<7)+CanRxData[3];
+
+			len=CanRxData[4];
 
 			if(!len || len >7)
 				len=1;
 
-			if (sys_reg < sizeof(main_regs)) {
+			switch(CanRxData[1]) {
+				case GET_SW_INFO_REGS:
+					p_sys_reg_offset=(uint8_t *)&main_regs.sw_info;
+					max_sys_reg_size=sizeof(_SW_INFO_REGS);
+					break;
+
+				case GET_DEV_CFG_REGS:
+					p_sys_reg_offset=(uint8_t *)&main_regs.dev_config;
+					max_sys_reg_size=sizeof(_DEV_CONFIG_REGS);
+					break;
+
+				case GET_BRD_INFO_REGS:
+					p_sys_reg_offset=(uint8_t *)&main_regs.board_info;
+					max_sys_reg_size=sizeof(_BOARD_INFO_STRUCT);
+					break;
+
+				case GET_MAIN_REGS:
+				default:
+					p_sys_reg_offset=(uint8_t *)&main_regs;
+					max_sys_reg_size=sizeof(_MAIN_REGS)-sizeof(_SW_INFO_REGS)-sizeof(_DEV_CONFIG_REGS)-sizeof(_BOARD_INFO_STRUCT);
+					break;
+			}
+
+			if ((sys_reg + 1) < max_sys_reg_size) {
+				if ((sys_reg + len) >= max_sys_reg_size) {
+					len = max_sys_reg_size - sys_reg;
+				}
 				CanTxData[0] = REPLAY_DATA_CMD;
 				//CanTxData[1] = sys_reg;
-				memcpy((uint8_t *)&CanTxData[1],(((uint8_t *)&main_regs)+sys_reg),len);
+				memcpy((uint8_t *)&CanTxData[1],(p_sys_reg_offset+sys_reg),len);
 				//CanTxData[2] = *(((uint8_t *)&main_regs)+sys_reg);
 				ReplayHeader.DLC = len+1;
 			}
@@ -507,6 +535,7 @@ uint8_t	process_CAN(void)
 				CanTxData[1] = NACK;
 				ReplayHeader.DLC = 2;
 			}
+
 			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
 			break;
 

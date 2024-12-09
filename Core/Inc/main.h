@@ -285,6 +285,8 @@ float			value;
 
 	_BMS_MEASURE_CONFIG_REGS	cfg_regs;	//copy of app-config
 	_DEV_CONFIG_REGS			dev_config;	//copy of dev-config
+	_SW_INFO_REGS				sw_info;	//copy of sw_info
+	_BOARD_INFO_STRUCT			board_info;	//copy of board_info
  }_MAIN_REGS;
 
 
