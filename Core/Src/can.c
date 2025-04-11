@@ -350,8 +350,8 @@ uint8_t	process_CAN(void)
 		{
 		case SET_RELAY_CMD:
 			//system-trip-relay be carefull
-			if (CanRxData[1] & SYSTEM_TRIP_RELAY2)	{
-				if (CanRxData[2] & SYSTEM_TRIP_RELAY2) {
+			if (CanRxData[1] & SYSTEM_TRIP_RELAY)	{
+				if (CanRxData[2] & SYSTEM_TRIP_RELAY) {
 					if(main_regs.ctrl & (1<<REG_CTRL_ENABLE_TRIP))
 						HAL_GPIO_WritePin(RELAY_1_GPIO_Port, RELAY_1_Pin, GPIO_PIN_SET);
 					}
@@ -441,6 +441,27 @@ uint8_t	process_CAN(void)
 
 			CanTxData[0] = REPLAY_AKC_NACK_CMD;
 			ReplayHeader.DLC = 2;
+			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
+			break;
+
+		case ADC_OFFSET_READ_CMD:
+			//printf("READ_REG_CMD\n");
+			int32_t offset;
+			offset = ADS131M08_get_offset(CanRxData[1]);
+			CanTxData[0] = REPLAY_DATA_CMD;
+			CanTxData[1] = CanRxData[1];
+			*((uint32_t *)(CanTxData+2)) = offset;
+			ReplayHeader.DLC = 6;
+			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
+			break;
+
+		case ADC_GAIN_READ_CMD:
+			uint32_t gain;
+			gain = ADS131M08_get_gain(CanRxData[1]);
+			CanTxData[0] = REPLAY_DATA_CMD;
+			CanTxData[1] = CanRxData[1];
+			*((uint32_t *)(CanTxData+2)) = gain;
+			ReplayHeader.DLC = 6;
 			can_task_scheduler |= PROCESS_CAN_SEND_REPLAY;
 			break;
 

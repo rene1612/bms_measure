@@ -1815,8 +1815,11 @@ uint16_t    		calculateCRC(const uint8_t dataBytes[], uint8_t numberBytes, uint1
 void 				ADS131M08_parse_adc_data();
 HAL_StatusTypeDef	ADS131M08_receive_data();
 uint8_t				process_ADS131M08(void);
+
 uint8_t				ADS131M08_offset_calibration(_ADS131M08_ch ch, int32_t offset);
 uint8_t				ADS131M08_gain_calibration(_ADS131M08_ch ch, uint32_t gain);
+uint32_t			ADS131M08_get_gain(_ADS131M08_ch ch);
+int32_t				ADS131M08_get_offset(_ADS131M08_ch ch);
 
 // Getter functions
 uint16_t    		getRegisterValue(uint8_t address);

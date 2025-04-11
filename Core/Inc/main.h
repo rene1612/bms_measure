@@ -162,7 +162,7 @@ typedef struct
  #define DEFAULT_CFT_CURRENT		32.0
 #endif
 
-#define SYSTEM_TRIP_RELAY2		0x01
+#define SYSTEM_TRIP_RELAY		0x01
 #define CFT_RELAY1				0x02
 #define CFT_RELAY2				0x04
 #if __BOARD_VERSION__ >= 0x0200

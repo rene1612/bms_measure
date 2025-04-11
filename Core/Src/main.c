@@ -108,21 +108,21 @@ __attribute__((__section__(".sw_info"))) const _SW_INFO_REGS sw_info_regs = {
 __attribute__((__section__(".app_config"))) const _BMS_MEASURE_CONFIG_REGS app_cfg_regs = {
 
 	{//calibration
-		{-128400, 0x800000},	//adc channel 01, current measurement, unused at the moment
+		{-139500, 0x800000},	//adc channel 01, current measurement, unused at the moment
 #if (CHANNEL_COUNT > 1)
-		{-114200, 0x800000},	//adc channel 02, current measurement
+		{-132500, 0x800000},	//adc channel 02, current measurement
 #endif
 #if (CHANNEL_COUNT > 2)
-		{-87500, 0x800000},		//adc channel 03, current measurement
+		{-144600, 0x800000},		//adc channel 03, current measurement
 #endif
 #if (CHANNEL_COUNT > 3)
-		{-125100, 0x800000},		//adc channel 04, current measurement
+		{-83600, 0x800000},		//adc channel 04, current measurement
 #endif
 #if (CHANNEL_COUNT > 4)
-		{-77200, 0x7E1AD8},		//adc channel 05, voltage measurement
+		{-36950, 8600000},		//adc channel 05, voltage measurement
 #endif
 #if (CHANNEL_COUNT > 5)
-		{0, 0x800000},			//adc channel 06, unused at the moment, current measurement based on shunt resistor
+		{-36950, 8600000},			//adc channel 06, unused at the moment, current measurement based on shunt resistor
 #endif
 	},
 	{ //alert Thresholds
@@ -160,9 +160,9 @@ __attribute__((__section__(".app_config"))) const _BMS_MEASURE_CONFIG_REGS app_c
 #endif
 #if (CHANNEL_COUNT > 4)
 #ifdef __DEBUG__
-		{ 420.0, 545.0, (0)},//ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD
+		{ 420000.0, 550000.0, (ENABLE_MAX_THRESHOLD)},//ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD
 #else
-		{ 420.0, 545.0, (ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD)},
+		{ 420000.0, 550000.0, (ENABLE_MIN_THRESHOLD|ENABLE_MAX_THRESHOLD)},
 #endif
 #endif
 #if (CHANNEL_COUNT > 5)

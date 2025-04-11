@@ -244,6 +244,43 @@ uint8_t	ADS131M08_offset_calibration(_ADS131M08_ch ch, int32_t offset)
 
 //*****************************************************************************
 //
+//! Read Offset Calibration  value from  adc
+//!
+//! \fn uint32_t	ADS131M08_get_offset(_ADS131M08_ch ch)
+//!
+//! NOTE:
+//!
+//! \return ads131m08_task_scheduler
+//!			0 on Error
+//!			1 on Success
+//*****************************************************************************
+int32_t	ADS131M08_get_offset(_ADS131M08_ch ch)
+{
+	uint8_t addr;
+	int32_t data;
+
+	if (ch >= NUMB_ADC_CH)
+		return HAL_ERROR;
+
+	addr = CH0_OCAL_MSB_ADDRESS + ch*5;
+
+	data = readSingleRegister(addr);
+	data &= 0x00FF;
+	data <<= 8;
+	if (data & 0x800000)
+		data |= 0xFF000000;
+	else
+		data &= 0x00FF0000;
+
+
+	addr = CH0_OCAL_LSB_ADDRESS + ch*5;
+	data += readSingleRegister(addr);
+
+	return data;
+}
+
+//*****************************************************************************
+//
 //! Gain Calibration for adc
 //!
 //! \fn uint8_t	ADS131M08_gain_calibration(_ADS131M08_ch ch, uint32_t gain)
@@ -275,6 +312,40 @@ uint8_t	ADS131M08_gain_calibration(_ADS131M08_ch ch, uint32_t gain)
 	return HAL_OK;
 }
 
+
+
+//*****************************************************************************
+//
+//! Get Gain Calibration for adc
+//!
+//! \fn uint32_t	ADS131M08_get_gain(_ADS131M08_ch ch)
+//!
+//! NOTE:
+//!
+//! \return ads131m08_task_scheduler
+//!			0 on Error
+//!			1 on Success
+//*****************************************************************************
+uint32_t	ADS131M08_get_gain(_ADS131M08_ch ch)
+{
+	uint8_t addr;
+	//uint32_t regs;
+	uint32_t data;
+
+	if (ch >= NUMB_ADC_CH)
+		return HAL_ERROR;
+
+	addr = CH0_GCAL_MSB_ADDRESS + ch*5;
+	data = readSingleRegister(addr);
+	data &= 0x00FF;
+	data <<= 8;
+
+	addr = CH0_GCAL_LSB_ADDRESS + ch*5;
+	data += readSingleRegister(addr);
+
+
+	return data;
+}
 
 //*****************************************************************************
 //
@@ -1278,7 +1349,8 @@ void ADS131M08_parse_adc_data()
 
 float ADS131M08_convert_to_mVolt(int32_t reg)
 {
-    const float unitFS = 345.0f / 8388607.0f; // unit: mV (if unit is V, calculated value is out of 'float' range)
+    //const float unitFS = 345.0f / 8388607.0f; // unit: mV (if unit is V, calculated value is out of 'float' range)
+    const float unitFS = 700000.0f / 8388607.0f; // unit: mV (if unit is V, calculated value is out of 'float' range)
 
     // convert register to mVolt
     return (unitFS * (float)reg);
